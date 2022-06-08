@@ -77,7 +77,7 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #define ENTITY_EFFECT
   #define HAND_SWAY 0.0 //[0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.2 1.4 1.6 1.8 2.0 2.2 2.4 2.6 2.8 3.0]
 //#define SNOW_MODE
-  #define NETHER_REFRACT 1 //[0 1 2 3]
+  #define NETHER_REFRACT 0 //[0 1 2 3]
   #define NIGHT_VISION 1 //[1 2]
 //#define VANILLA_UNDERLAVA_COLOR
   #define DYNAMIC_SHADER_LIGHT
@@ -143,10 +143,10 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #define EMISSIVE_LAPIS_ORE
   #define EMISSIVE_DIAMOND_ORE
   #define ORE_EMISSION 0.50 //[0.01 0.02 0.03 0.05 0.07 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00 2.25 2.50 2.75 3.00 3.25 3.50 3.75 4.00 4.25 4.50 4.75 5.00 6.00 7.00 8.00]
-//#define GLOWING_DEBRIS
-//#define EMISSIVE_NETHER_ORES
+  #define GLOWING_DEBRIS
+  #define EMISSIVE_NETHER_ORES
   #define EMISSIVE_NETHER_STEMS
-  #define EMISSIVE_LICHEN 1 //[0 1 2]
+  #define EMISSIVE_LICHEN 0 //[0 1 2]
   #define EMISSIVE_AMETHYST_BUDS
   #define FANCY_NETHER_PORTAL 0 //[0 1 2]
 //#define GREEN_SCREEN
@@ -177,7 +177,7 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #define SHARPEN 0 //[0 1 2 3 4 5 6 7 8 9 10]
   #define CHROMATIC_ABERRATION 0 //[0 1 2 3 4 5 6 7 8 9 10]
   #define AUTO_EXPOSURE 0 //[0 1 2]
-  #define VIGNETTE 1 //[0 1 2]
+  #define VIGNETTE 0 //[0 1 2]
   #define VIGNETTE_STRENGTH 0.50 //[0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.10 1.20 1.30 1.40 1.50 1.60 1.70 1.80 1.90 2.00 2.25 2.50 2.75 3.00 4.00 5.00]
   #define SUN_GLARE
   #define SUN_GLARE_STRENGTH 1.0 //[0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.2 1.4 1.6 1.8 2.0 2.5 3.0 4.0 5.0]
