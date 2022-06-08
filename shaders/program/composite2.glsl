@@ -51,7 +51,7 @@ vec3 MotionBlur(vec3 color, float z, float dither) {
 		vec2 coord = texCoord.st - velocity * (3.5 + dither);
 		for(int i = 0; i < 9; i++, coord += velocity) {
 			vec2 coordb = clamp(coord, doublePixel, 1.0 - doublePixel);
-			mblur += texture2DLod(colortex0, coordb, 0.0).rgb;
+			mblur += texture2DLod(colortex0, coordb, 0).rgb;
 			mbwg += 1.0;
 		}
 		mblur /= mbwg;

@@ -10,6 +10,10 @@ varying vec2 texCoord;
 
 varying vec3 sunVec, upVec;
 
+#ifdef COLORED_LIGHT
+	varying	vec3 lightBuffer;
+#endif
+
 //////////Fragment Shader//////////Fragment Shader//////////Fragment Shader//////////
 #ifdef FSH
 
@@ -41,42 +45,40 @@ uniform sampler2D colortex0;
 uniform sampler2D depthtex0;
 
 #ifdef AO
-uniform sampler2D colortex4;
+	uniform sampler2D colortex4;
 #endif
 
 #ifdef AURORA
-uniform int moonPhase;
-#define UNIFORM_moonPhase
+	uniform int moonPhase;
+	#define UNIFORM_moonPhase
 #endif
 
 #if defined ADV_MAT || defined GLOWING_ENTITY_FIX || defined AO
-uniform sampler2D colortex3;
+	uniform sampler2D colortex3;
 #endif
 
 #if (defined ADV_MAT && defined REFLECTION_SPECULAR) || defined SEVEN || (defined END && defined ENDER_NEBULA) || (defined NETHER && defined NETHER_SMOKE)
-uniform vec3 cameraPosition;
+	uniform vec3 cameraPosition;
 
-uniform sampler2D colortex6;
-uniform sampler2D colortex1;
-uniform sampler2D noisetex;
-#endif
-
-#ifdef COLORED_LIGHT
-uniform sampler2D colortex8;
-uniform sampler2D colortex9;
+	uniform sampler2D colortex6;
+	uniform sampler2D colortex1;
+	uniform sampler2D noisetex;
 #endif
 
 #ifdef AURORA
-uniform float isDry, isRainy, isSnowy;
+	uniform float isDry, isRainy, isSnowy;
+#endif
+
+#ifdef COLORED_LIGHT
+	uniform sampler2D colortex8;
 #endif
 
 //Optifine Constants//
 #if defined ADV_MAT && defined REFLECTION_SPECULAR
-const bool colortex0MipmapEnabled = true;
+	const bool colortex0MipmapEnabled = true;
 #endif
 #ifdef COLORED_LIGHT
-const bool colortex8MipmapEnabled = true;
-const bool colortex9Clear = false;
+	const bool colortex8MipmapEnabled = true;
 #endif
 
 //Common Variables//
@@ -94,18 +96,18 @@ vec2 aoOffsets[4] = vec2[4](
 );
 
 #if WORLD_TIME_ANIMATION == 2
-float modifiedWorldDay = mod(worldDay, 100.0) + 5.0;
-float frametime = (worldTime + modifiedWorldDay * 24000) * 0.05 * ANIMATION_SPEED;
-float cloudtime = frametime;
+	int modifiedWorldDay = int(mod(worldDay, 100.0) + 5.0);
+	float frametime = (worldTime + modifiedWorldDay * 24000) * 0.05 * ANIMATION_SPEED;
+	float cloudtime = frametime;
 #endif
 #if WORLD_TIME_ANIMATION == 1
-float modifiedWorldDay = mod(worldDay, 100.0) + 5.0;
-float frametime = frameTimeCounter * ANIMATION_SPEED;
-float cloudtime = (worldTime + modifiedWorldDay * 24000) * 0.05 * ANIMATION_SPEED;
+	int modifiedWorldDay = int(mod(worldDay, 100.0) + 5.0);
+	float frametime = frameTimeCounter * ANIMATION_SPEED;
+	float cloudtime = (worldTime + modifiedWorldDay * 24000) * 0.05 * ANIMATION_SPEED;
 #endif
 #if WORLD_TIME_ANIMATION == 0
-float frametime = frameTimeCounter * ANIMATION_SPEED;
-float cloudtime = frametime;
+	float frametime = frameTimeCounter * ANIMATION_SPEED;
+	float cloudtime = frametime;
 #endif
 
 #ifdef END
@@ -221,7 +223,6 @@ void main() {
 
 	#ifdef COLORED_LIGHT
 		vec3 lightAlbedo = texture2DLod(colortex8, texCoord, log2(viewHeight)).rgb;
-		vec3 lightBuffer = texture2D(colortex9, texCoord).rgb;
 	#endif
 
 	float dither = Bayer64(gl_FragCoord.xy);
@@ -487,7 +488,7 @@ void main() {
 		for(int i = 0; i < 4; i++) {
 			vec2 texCoordM = texCoord + skyBlurOffset[i] / wh;
 			float depth = texture2D(depthtex0, texCoordM).r;
-			if (depth == 1.0) skyBlurColor += texture2DLod(colortex0, texCoordM, 0.0).rgb;
+			if (depth == 1.0) skyBlurColor += texture2DLod(colortex0, texCoordM, 0).rgb;
 			else skyBlurColor += color.rgb;
 		}
 		color.rgb = skyBlurColor / 5.0;
@@ -545,7 +546,15 @@ void main() {
 			NdotU = max(dot(normalize(viewPos.xyz), upVec), 0.0);
 			color.rgb = mix(color.rgb, 0.8 * pow(underwaterColor.rgb * (1.0 - blindFactor), vec3(2.0)), 1.0 - NdotU*NdotU);
 		}
-		if (isEyeInWater == 2) color.rgb = vec3(0.6, 0.35, 0.15); //duplicate 792763950
+		if (isEyeInWater == 2) {
+			//duplicate 792763950
+			#ifndef VANILLA_UNDERLAVA_COLOR
+				vec3 lavaFogColor = vec3(0.6, 0.35, 0.15);
+			#else
+				vec3 lavaFogColor = pow(fogColor, vec3(2.2));
+			#endif
+			color.rgb = lavaFogColor;
+		}
 		if (blindFactor > 0.0) color.rgb *= 1.0 - blindFactor;
 	}
     
@@ -556,13 +565,13 @@ void main() {
 
 	#ifdef COLORED_LIGHT
 		float sumlightAlbedo = max(lightAlbedo.r + lightAlbedo.g + lightAlbedo.b, 0.0001);
-		lightAlbedo = lightAlbedo / sumlightAlbedo;
-		lightAlbedo *= lightAlbedo;
-		lightAlbedo *= BLOCKLIGHT_I * vec3(2.0, 1.8, 2.0);
+		vec3 lightAlbedoM = lightAlbedo / sumlightAlbedo;
+		lightAlbedoM *= lightAlbedoM;
+		lightAlbedoM *= BLOCKLIGHT_I * vec3(2.0, 1.8, 2.0);
 
 		float lightSpeed = 0.01;
-		    lightBuffer = mix(lightBuffer, blocklightCol, lightSpeed * 0.25);
-		vec3 finalLight = mix(lightBuffer, lightAlbedo, lightSpeed * float(sumlightAlbedo > 0.0002));
+		vec3 lightBufferM = mix(lightBuffer, blocklightCol, lightSpeed * 0.25);
+		vec3 finalLight = mix(lightBufferM, lightAlbedoM, lightSpeed * float(sumlightAlbedo > 0.0002));
 	#endif
 	
 	/*DRAWBUFFERS:05*/
@@ -581,8 +590,13 @@ void main() {
 #ifdef VSH
 
 //Uniforms//
-
 uniform mat4 gbufferModelView;
+
+#ifdef COLORED_LIGHT
+	uniform sampler2D colortex9;
+#endif
+
+//Optifine Constants//
 
 //Common Variables//
 #ifdef OVERWORLD
@@ -607,6 +621,10 @@ void main() {
 	sunVec = normalize((gbufferModelView * vec4(vec3(-sin(ang), cos(ang) * sunRotationData) * 2000.0, 1.0)).xyz);
 
 	upVec = normalize(gbufferModelView[1].xyz);
+
+	#ifdef COLORED_LIGHT
+		lightBuffer = texture2D(colortex9, texCoord).rgb;
+	#endif
 }
 
 #endif

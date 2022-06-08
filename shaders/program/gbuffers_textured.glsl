@@ -54,15 +54,19 @@ uniform mat4 shadowModelView;
 uniform sampler2D texture;
 
 #if ((defined WATER_CAUSTICS || defined CLOUD_SHADOW) && defined OVERWORLD) || defined RANDOM_BLOCKLIGHT || defined END || (defined NETHER && defined NETHER_SMOKE)
-uniform sampler2D noisetex;
+	uniform sampler2D noisetex;
 #endif
 
 #if !defined COMPATIBILITY_MODE && MC_VERSION >= 11700
-uniform ivec4 blendFunc;
+	uniform ivec4 blendFunc;
 #endif
 
 #ifdef COLORED_LIGHT
-uniform sampler2D colortex9;
+	uniform sampler2D colortex9;
+#endif
+
+#if MC_VERSION >= 11900
+	uniform float darknessLightFactor;
 #endif
 
 //Common Variables//
@@ -85,11 +89,6 @@ float vsBrightness = clamp(screenBrightness, 0.0, 1.0);
 //Common Functions//
 float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
-}
-
-float InterleavedGradientNoise() {
-	float n = 52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y);
-	return fract(n + frameCounter / 8.0);
 }
  
 //Includes//

@@ -22,7 +22,7 @@ void NeighbourhoodClamping(vec3 color, inout vec3 tempColor, vec2 view, float de
 		vec2 offset = neighbourhoodOffsets[i] * view;
 		float depthCheck = texture2D(depthtex1, texCoord + offset).r;
 		if (abs(GetLinearDepth(depthCheck) - GetLinearDepth(depth)) > 0.03) edge = 1.0;
-		vec3 clr = texture2DLod(colortex1, texCoord + offset, 0.0).rgb;
+		vec3 clr = texture2DLod(colortex1, texCoord + offset, 0).rgb;
 		minclr = min(minclr, clr); maxclr = max(maxclr, clr);
 	}
 

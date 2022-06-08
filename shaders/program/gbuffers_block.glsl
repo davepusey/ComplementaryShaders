@@ -27,17 +27,24 @@ varying vec4 color;
 		varying vec3 viewVector;
 	#endif
 
-	#if !defined COMPBR || defined NORMAL_MAPPING
+	#if !defined COMPBR || defined NORMAL_MAPPING || defined NOISY_TEXTURES
 		varying vec4 vTexCoord;
 		varying vec4 vTexCoordAM;
+		#ifdef COMPBR
+			varying vec2 vTexCoordL;
+		#endif
 	#endif
 
 	#ifdef NORMAL_MAPPING
 		varying vec3 binormal, tangent;
 	#endif
 
-	#if defined NORMAL_MAPPING && defined GENERATED_NORMALS_121123
+	#ifdef GENERATED_NORMALS
 		uniform mat4 gbufferProjection;
+	#endif
+
+	#ifdef NOISY_TEXTURES
+		varying float noiseVarying;
 	#endif
 #endif
 
@@ -76,7 +83,7 @@ uniform mat4 shadowModelView;
 
 uniform sampler2D texture;
 
-#if ((defined WATER_CAUSTICS || defined CLOUD_SHADOW) && defined OVERWORLD) || defined RANDOM_BLOCKLIGHT
+#if ((defined WATER_CAUSTICS || defined CLOUD_SHADOW) && defined OVERWORLD) || defined RANDOM_BLOCKLIGHT || defined NOISY_TEXTURES
 	uniform sampler2D noisetex;
 #endif
 
@@ -89,8 +96,12 @@ uniform sampler2D texture;
 	uniform sampler2D colortex9;
 #endif
 
-#if defined NOISY_TEXTURES_121123 || defined GENERATED_NORMALS_121123
+#if defined NOISY_TEXTURES || defined GENERATED_NORMALS
 	uniform ivec2 atlasSize;
+#endif
+
+#if MC_VERSION >= 11900
+	uniform float darknessLightFactor;
 #endif
 
 //Common Variables//
@@ -104,7 +115,7 @@ float vsBrightness = clamp(screenBrightness, 0.0, 1.0);
 	float frametime = frameTimeCounter * ANIMATION_SPEED;
 #endif
 
-#if defined ADV_MAT && RP_SUPPORT > 2
+#if defined ADV_MAT && RP_SUPPORT > 2 || defined GENERATED_NORMALS || defined NOISY_TEXTURES
 	vec2 dcdx = dFdx(texCoord.xy);
 	vec2 dcdy = dFdy(texCoord.xy);
 #endif
@@ -119,21 +130,18 @@ float vsBrightness = clamp(screenBrightness, 0.0, 1.0);
 float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
 }
-
-float InterleavedGradientNoise() {
-	float n = 52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y);
-	return fract(n + frameCounter / 8.0);
-}
  
 //Includes//
 #include "/lib/color/blocklightColor.glsl"
 #include "/lib/color/dimensionColor.glsl"
 #include "/lib/util/spaceConversion.glsl"
 
-#ifdef WATER_CAUSTICS
-#ifdef OVERWORLD
-#include "/lib/color/waterColor.glsl"
+#ifdef END_PORTAL_REWORK
+	#include "/lib/util/dither.glsl"
 #endif
+
+#if defined WATER_CAUSTICS && defined OVERWORLD
+	#include "/lib/color/waterColor.glsl"
 #endif
 
 #include "/lib/lighting/forwardLighting.glsl"
@@ -146,16 +154,24 @@ float InterleavedGradientNoise() {
 #endif
 
 #ifdef ADV_MAT
-#include "/lib/util/encode.glsl"
-#include "/lib/lighting/ggx.glsl"
+	#include "/lib/util/encode.glsl"
+	#include "/lib/lighting/ggx.glsl"
 
-#ifndef COMPBR
-#include "/lib/surface/materialGbuffers.glsl"
-#endif
+	#ifndef COMPBR
+		#include "/lib/surface/materialGbuffers.glsl"
+	#endif
 
-#if defined PARALLAX || defined SELF_SHADOW
-#include "/lib/surface/parallax.glsl"
-#endif
+	#if defined PARALLAX || defined SELF_SHADOW
+		#include "/lib/surface/parallax.glsl"
+	#endif
+
+	#ifdef GENERATED_NORMALS
+		#include "/lib/surface/autoGenNormals.glsl"
+	#endif
+
+	#ifdef NOISY_TEXTURES
+		#include "/lib/surface/noiseCoatedTextures.glsl"
+	#endif
 #endif
 
 //Program//
@@ -216,72 +232,32 @@ void main() {
 
 		float lViewPos = length(viewPos.xyz);
 
-		float ao = 1.0;
+		float materialAO = 1.0;
 		#ifdef ADV_MAT
 			#ifndef COMPBR
-				GetMaterials(smoothness, metalness, f0, metalData, emissive, ao, normalMap, newCoord, dcdx, dcdy);
+				GetMaterials(smoothness, metalness, f0, metalData, emissive, materialAO, normalMap, newCoord, dcdx, dcdy);
 			#else
 				if (blockEntityId == 12001) { // Conduit
 					emissive = float(albedo.b > albedo.r) * pow2(length(albedo.rgb));
+					if (CheckForColor(albedo.rgb, vec3(133, 122, 42))
+					 || CheckForColor(albedo.rgb, vec3(117, 80, 37))
+					 || CheckForColor(albedo.rgb, vec3(101, 36, 31))) { // Center Of The Eye
+						emissive = 2.0;
+						albedo.rgb = vec3(1.0, 0.2, 0.15) + 0.3 * albedo.rgb;
+					}
 				}
 
-				#if defined NOISY_TEXTURES_121123 || defined GENERATED_NORMALS_121123
-					float atlasRatio = atlasSize.x / atlasSize.y;
+				#if defined NOISY_TEXTURES || defined GENERATED_NORMALS
+					#ifdef NOISY_TEXTURES
+						float noiseVaryingM = noiseVarying;
+					#endif
+					#include "/lib/other/mipLevel.glsl"
 				#endif
 			#endif
 			
 			#ifdef NORMAL_MAPPING
-				#ifdef GENERATED_NORMALS_121123
-					float packSize = 128.0;
-					float lOriginalAlbedo = length(albedoP);
-					float fovScale = gbufferProjection[1][1] / 1.37;
-					float scale = lViewPos / fovScale;
-					float normalMult1 = clamp(14.0 - scale, 0.0, 8.0) * 0.15;
-					float normalMult2 = 1.5 * sqrt(NORMAL_MULTIPLIER);
-					float normalClamp1 = 0.05;
-					float normalClamp2 = 0.5;
-					vec2 checkMult = 1.0 / vTexCoordAM.pq;
-					vec2 offsetR = vec2(0.015625 / packSize);
-					offsetR.y *= atlasRatio;
-					float difSum = 0.0;
-					if (normalMult1 > 0.0) {
-						for(int i = 0; i < 4; i++) {
-							vec2 offset = vec2(0.0, 0.0);
-							if (i == 0) offset = vec2( 0.0, offsetR.y);
-							if (i == 1) offset = vec2( offsetR.x, 0.0);
-							if (i == 2) offset = vec2( 0.0,-offsetR.y);
-							if (i == 3) offset = vec2(-offsetR.x, 0.0);
-							vec2 offsetCoord = newCoord + offset;
-
-							vec2 checkOffset = offset * checkMult;
-							if (i == 0 && vTexCoord.y + checkOffset.y > 1.0) continue;
-							if (i == 1 && vTexCoord.x + checkOffset.x > 1.0) continue;
-							if (i == 2 && vTexCoord.y + checkOffset.y < 0.0) continue;
-							if (i == 3 && vTexCoord.x + checkOffset.x < 0.0) continue;
-
-							float lNearbyAlbedo = length(texture2D(texture, offsetCoord).rgb);
-							float dif = lOriginalAlbedo - lNearbyAlbedo;
-							if (dif > 0.0) dif = max(dif - normalClamp1, 0.0);
-							else           dif = min(dif + normalClamp1, 0.0);
-							dif *= normalMult1;
-							dif = clamp(dif, -normalClamp2, normalClamp2) * normalMult2;
-							if (i == 0) {
-								normalMap.y += dif;
-							}
-							if (i == 1) {
-								normalMap.x += dif;
-							}
-							if (i == 2) {
-								normalMap.y -= dif;
-							}
-							if (i == 3) {
-								normalMap.x -= dif;
-							}
-							difSum += abs(dif);
-						}
-						float difSumRaw = difSum / normalMult2;
-						if (difSumRaw > normalClamp2) normalMap.xy = mix(normalMap.xy, vec2(0.0, 0.0), max(difSumRaw - normalClamp2, 0.0) * 1.0);
-					}
+				#ifdef GENERATED_NORMALS
+					AutoGenerateNormals(normalMap, albedoP.rgb, delta);
 				#endif
 
 				mat3 tbnMatrix = mat3(tangent.x, binormal.x, normal.x,
@@ -297,77 +273,15 @@ void main() {
 			  quarterNdotU*= quarterNdotU * (subsurface > 0.5 ? 1.8 : 1.0);
 
 		#ifdef END_PORTAL_REWORK
-			// End Portal fix by fayer3#2332 (Modified)
-			if (blockEntityId == 200) {
-				if (albedo.b < 0.1) {
-					vec4[16] colors = vec4[](
-						vec4(0.34724797, 0.6559956 , 0.73878384,1),
-						vec4(0.30107807, 0.6153565 , 0.760625  ,1),
-						vec4(0.42210903, 0.81350946, 0.9026056 ,1),
-						vec4(0.34922913, 1.02412016, 1.86128217,1),
-						vec4(0.7543085 , 0.8238697 , 0.6803233 ,1),
-						vec4(0.4144472 , 0.56481653, 0.8037    ,1),
-						vec4(0.508905  , 0.6719649 , 0.9982805 ,1),
-						vec4(0.53619146, 0.8476583 , 0.5008522 ,1),
-						vec4(0.5307609 , 0.655718  , 0.9759534 ,1),
-						vec4(0.43974575, 0.4958458 , 0.8425293 ,1),
-						vec4(0.53406537, 0.55311275, 1.5943265 ,1),
-						vec4(0.24501994, 0.8516629 , 0.82527184,1),
-						vec4(0.5902973 , 0.4286982 , 0.64408666,1),
-						vec4(0.11820245, 1.7883446 , 1.8049257 ,1),
-						vec4(0.70934908, 0.78002053, 0.96041328,1),
-						vec4(0.4214321 , 0.47223094, 1.9922364 ,1));
-					albedo.rgb = colors[15].rgb * 0.001;  
-
-					for (int i = 1; i < 16; i++) {
-						float colormult = 1.0/(16-i+20.0);
-						albedo.rgb *= 0.69 * (1.0 + float(i > 1));
-						float rotation = (i - 0.1 * i + 0.71 * i - 11 * i + 21) * 0.01 + i * 0.01;
-						float Cos = cos(radians(rotation));
-						float Sin = sin(radians(rotation));
-						vec2 offset = vec2(0.0, 1.0/(3600.0/24.0)) * pow(16.0 - i, 2.0) * 0.004;
-
-						vec3 wpos = normalize((gbufferModelViewInverse * vec4(viewPos * (i + 1), 1.0)).xyz);
-						if (abs(dot(normal, upVec)) > 0.9) {
-							wpos.xz /= wpos.y;
-							wpos.xz *= 0.06 * sign(- worldPos.y);
-							wpos.xz *= abs(worldPos.y) + i;
-							wpos.xz -= cameraPosition.xz * 0.05;
-						} else {
-							vec3 absPos = abs(worldPos);
-							if (abs(dot(normal, eastVec)) > 0.9) {
-								wpos.xz = wpos.yz / wpos.x;
-								wpos.xz *= 0.06 * sign(- worldPos.x);
-								wpos.xz *= abs(worldPos.x) + i;
-								wpos.xz -= cameraPosition.yz * 0.05;
-							} else {
-								wpos.xz = wpos.yx / wpos.z;
-								wpos.xz *= 0.06 * sign(- worldPos.z);
-								wpos.xz *= abs(worldPos.z) + i;
-								wpos.xz -= cameraPosition.yx * 0.05;
-							}
-						}
-						vec2 pos = wpos.xz;
-
-						vec2 wind = fract((frameTimeCounter + 984.0) * (i + 8) * 0.125 * offset);
-						vec2 coord = mat2(Cos, Sin, -Sin, Cos) * pos + wind;
-						if (mod(float(i), 4) < 1.5) coord = coord.yx + vec2(-1.0, 1.0) * wind.y;
-						
-						vec4 psample = texture2D(texture, coord) * colors[i-1] * colormult;
-						albedo += psample * length(psample.rgb) * 36.0;
-					}
-					#ifdef ADV_MAT
-						smoothness = 1.0;
-					#endif
-				} else {
-					albedo.rgb *= 2.2;
-					emissive = 0.25;
-				}
-				quarterNdotU = 1.0;
-			}
+			#include "/lib/other/endPortalEffect.glsl"
 		#endif
 
     	albedo.rgb = pow(albedo.rgb, vec3(2.2));
+
+		#ifdef NOISY_TEXTURES
+			if (blockEntityId != 200)
+			NoiseCoatTextures(albedo, smoothness, emissive, metalness, worldPos, miplevel, noiseVaryingM, 0.0);
+		#endif
 
 		#ifdef WHITE_WORLD
 			albedo.rgb = vec3(0.5);
@@ -376,17 +290,16 @@ void main() {
 		float NdotL = clamp(dot(newNormal, lightVec) * 1.01 - 0.01, 0.0, 1.0);
 
 		float parallaxShadow = 1.0;
-		float materialAO = 1.0;
 		#ifdef ADV_MAT
 			rawAlbedo = albedo.rgb * 0.999 + 0.001;
-			#ifdef COMPBR
-				albedo.rgb *= ao;
-				if (metalness > 0.80) {
+			#ifdef REFLECTION_SPECULAR
+				#ifdef COMPBR
+					if (metalness > 0.80) {
+						albedo.rgb *= (1.0 - metalness*0.65);
+					}
+				#else
 					albedo.rgb *= (1.0 - metalness*0.65);
-				}
-			#else
-				materialAO = ao;
-				albedo.rgb *= (1.0 - metalness*0.65);
+				#endif
 			#endif
 
 			float doParallax = 0.0;
@@ -527,7 +440,6 @@ void main() {
 #ifdef VSH
 
 //Uniforms//
-
 uniform float frameTimeCounter;
 
 uniform vec3 cameraPosition;
@@ -535,9 +447,13 @@ uniform vec3 cameraPosition;
 uniform mat4 gbufferModelView, gbufferModelViewInverse;
 
 #if AA > 1
-uniform int frameCounter;
+	uniform int frameCounter;
 
-uniform float viewWidth, viewHeight;
+	uniform float viewWidth, viewHeight;
+#endif
+
+#if defined NOISY_TEXTURES || defined GENERATED_NORMALS
+	uniform int blockEntityId;
 #endif
 
 //Attributes//
@@ -590,7 +506,7 @@ void main() {
 	normal = normalize(gl_NormalMatrix * gl_Normal);
 
 	#ifdef ADV_MAT
-		#if defined NORMAL_MAPPING
+		#ifdef NORMAL_MAPPING
 			binormal = normalize(gl_NormalMatrix * cross(at_tangent.xyz, gl_Normal.xyz) * at_tangent.w);
 			tangent  = normalize(gl_NormalMatrix * at_tangent.xyz);
 			
@@ -607,11 +523,15 @@ void main() {
 		vec2 midCoord = (gl_TextureMatrix[0] * mc_midTexCoord).st;
 		vec2 texMinMidCoord = texCoord - midCoord;
 
-		#if !defined COMPBR || defined NORMAL_MAPPING
-			vTexCoordAM.pq  = abs(texMinMidCoord) * 2;
-			vTexCoordAM.st  = min(texCoord, midCoord - texMinMidCoord);
+		#if !defined COMPBR || defined NORMAL_MAPPING || defined NOISY_TEXTURES
+			vTexCoordAM.zw  = abs(texMinMidCoord) * 2;
+			vTexCoordAM.xy  = min(texCoord, midCoord - texMinMidCoord);
 			
 			vTexCoord.xy    = sign(texMinMidCoord) * 0.5 + 0.5;
+
+			#ifdef COMPBR
+				vTexCoordL  = texMinMidCoord * 2;
+			#endif
 		#endif
 	#endif
     
@@ -635,6 +555,21 @@ void main() {
 	#else
 		gl_Position = ftransform();
     #endif
+
+	#if defined NOISY_TEXTURES || defined GENERATED_NORMALS
+		#ifdef NOISY_TEXTURES
+			noiseVarying = 0.65;
+		#endif
+		if (blockEntityId == 12005) { // Chests
+			float worldPosYF = fract((gbufferModelViewInverse * gl_ModelViewMatrix * gl_Vertex).y + cameraPosition.y);
+			if (worldPosYF > 0.56 && 0.57 > worldPosYF) gl_Position.z -= 0.0001;
+		}
+		else if (blockEntityId == 12009) { // Shulker Boxes, Banners
+			#ifdef NOISY_TEXTURES
+				noiseVarying = 0.35;
+			#endif
+		}
+	#endif
 	
 	#if AA > 1
 		gl_Position.xy = TAAJitter(gl_Position.xy, gl_Position.w);

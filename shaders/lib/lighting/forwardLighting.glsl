@@ -51,9 +51,8 @@ void GetLighting(inout vec3 albedo, inout vec3 shadow, inout vec3 lightAlbedo, v
 		#ifdef SHADOWS
 			shadow = vec3(1.0);
 			if ((NdotL > 0.0 || subsurface > 0.001)) {
-				float shadowLengthX = length(worldPos.xy);
-				float shadowLengthZ = length(worldPos.yz);
-				float shadowLength = shadowDistance - max(shadowLengthX, shadowLengthZ) - shadowDistance / 12.0;
+				float shadowLength = shadowDistance * 0.9166667 - length(vec4(worldPos.x, worldPos.y, worldPos.y, worldPos.z));
+				//shadowDistance * 0.9166667 is shadowDistance - shadowDistance / 12.0
 
 				#if (defined OVERWORLD || defined SEVEN) && defined LIGHT_LEAK_FIX
 					if (isEyeInWater == 0) shadowLength *= float(lightmap.y > 0.001);
@@ -95,13 +94,17 @@ void GetLighting(inout vec3 albedo, inout vec3 shadow, inout vec3 lightAlbedo, v
 					float bias = (distortBias * biasFactor + dotWorldPos * 0.000005 + 0.05) / shadowMapResolution;
 					float offset = 1.0 / shadowMapResolution;
 
+					int doSubsurface = 0;
 					if (subsurface > 0.001) {
 						if (leaves < 0.5) {
 							float UdotLm = clamp(dot(upVec, lightVec) * 1.01 - 0.01, 0.0, 1.0) * 0.99 + 0.01;
 							float biasFactorF = sqrt(1.0 - UdotLm * UdotLm) / UdotLm;
 							bias = (distortBias * biasFactorF + 0.05) / shadowMapResolution * 1.3;
 						} else bias = 0.0002;
-						offset = 0.002;
+						offset = 0.002;					
+    					#if SHADOW_SUBSURFACE > 2
+							doSubsurface = 14;
+						#endif
 					}
 					if (isEyeInWater == 1) offset *= 5.0;
 
@@ -110,7 +113,7 @@ void GetLighting(inout vec3 albedo, inout vec3 shadow, inout vec3 lightAlbedo, v
 					#endif
 
 					shadowPos.z -= bias;
-					shadow = GetShadow(shadowPos, offset, water);
+					shadow = GetShadow(shadowPos, offset, water, doSubsurface);
 
 					#if defined PROJECTED_CAUSTICS && defined WATER_CAUSTICS && defined OVERWORLD && !defined GBUFFERS_WATER
 						if (isEyeInWater == 0) {
@@ -251,7 +254,7 @@ void GetLighting(inout vec3 albedo, inout vec3 shadow, inout vec3 lightAlbedo, v
 			#endif
 		
 			#if MC_VERSION >= 11600
-				vec3 sceneLighting = normalize(fogColor) * 0.0385 * NETHER_I * (vsBrightness*0.5 + 0.6);
+				vec3 sceneLighting = normalize(sqrt(fogColor)) * 0.0385 * NETHER_I * (vsBrightness*0.5 + 0.6);
 			#else
 				vec3 sceneLighting = normalize(netherCol) * 0.0385 * NETHER_I * (vsBrightness*0.5 + 0.6);
 			#endif
@@ -264,11 +267,7 @@ void GetLighting(inout vec3 albedo, inout vec3 shadow, inout vec3 lightAlbedo, v
 		float handLight = min(float(heldBlockLightValue2 + heldBlockLightValue), 15.0) / 15.0;
 
 		if (heldItemId == 12001 || heldItemId2 == 12001) // Lava Bucket
-			#if defined GBUFFERS_HAND && defined COMPBR
-				handLight = 0.87, emissive = max(albedo.r * 2.0 - albedo.g - albedo.b, 0.0) * 0.5;
-			#else
-				handLight = 1.0;
-			#endif
+			handLight = 1.0;
 		if (heldItemId == 12002 || heldItemId2 == 12002) // Optifine Item Emissives
 			handLight = min(handLight + 0.65, 1.0);
 
@@ -437,5 +436,9 @@ void GetLighting(inout vec3 albedo, inout vec3 shadow, inout vec3 lightAlbedo, v
 	#if defined GBUFFERS_HAND && defined HAND_BLOOM_REDUCTION
 		float albedoStrength = (albedo.r + albedo.g + albedo.b) / 10.0;
 		if (albedoStrength > 1.0) albedo.rgb = albedo.rgb * max(2.0 - albedoStrength, 0.34);
+	#endif
+
+	#if MC_VERSION >= 11900
+		albedo *= 1.0 - clamp(darknessLightFactor * (2.0 - emissive * 10000.0), 0.0, 1.0);
 	#endif
 }

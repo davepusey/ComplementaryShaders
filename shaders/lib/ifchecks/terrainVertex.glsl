@@ -247,12 +247,18 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                     } else {
                         if (mc_Entity.x == 10348) // Block of Redstone
                             #ifdef GLOWING_REDSTONE_BLOCK
-                                specB = 7.99, mat = 20000.0, color.rgb = vec3(1.1), color.a = 1.0,
+                                specB = 7.20, mat = 20000.0, color.rgb = vec3(1.1), color.a = 1.0,
+                                #ifdef SNOW_MODE
+                                    noSnow = 1.0,
+                                #endif
                             #endif
                             specR = 8.05, specG = 1.0;
                         else if (mc_Entity.x == 10352) // Lapis Lazuli Block
                             #ifdef GLOWING_LAPIS_BLOCK
-                                specB = 6.99, mat = 20000.0, color.rgb = vec3(1.13), color.a = 1.0,
+                                specB = 6.20, mat = 20000.0, color.rgb = vec3(1.13), color.a = 1.0,
+                                #ifdef SNOW_MODE
+                                    noSnow = 1.0,
+                                #endif
                             #endif
                             specR = 16.11;
                         else if (mc_Entity.x == 10356) // Carpets, Wools
@@ -369,8 +375,9 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                             #ifdef COLORED_LIGHT
                                 lightVarying = 3.0,
                             #endif
-                            lmCoord.x = 0.87, specB = 3.08, color.rgb = vec3(0.69, 0.65, 0.6),
-                            mipmapDisabling = 1.0;
+                            lmCoord.x = 0.87, specB = 3.08, mat = 162.0,
+                            //mipmapDisabling = 1.0,
+                            color.rgb = vec3(0.69, 0.65, 0.6);
                         else if (mc_Entity.x == 11008) // Sea Lantern
                             #ifdef COLORED_LIGHT
                                 lightVarying = 4.0,
@@ -383,8 +390,9 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                             #ifdef NOISY_TEXTURES
                                 noiseVarying = 2.0,
                             #endif
-                            lmCoord = vec2(0.0), specB = 2.05, color.rgb = vec3(0.85, 0.84, 0.7),
-                            quarterNdotUfactor = 0.0, mipmapDisabling = 1.0;
+                            lmCoord = vec2(0.0), specB = 2.05, color.rgb = vec3(0.85, 0.84, 0.7), mat = 162.0,
+                            //mipmapDisabling = 1.0,
+                            quarterNdotUfactor = 0.0;
                     }
                 } else {
                     if (mc_Entity.x < 11024.5) {
@@ -489,12 +497,18 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                                 lightVarying = 3.0,
                             #endif
                             lmCoord.x = 0.87, specB = 3.4, mat = 20000.0, color.rgb = vec3(1.0, 0.0, 0.0),
+                            #ifndef REFLECTION_SPECULAR
+                                specB -= fract(specB) * 0.85,
+                            #endif
                             specR = 0.5, specG = 1.0;
                         else if (mc_Entity.x == 11072) // Soul Lantern
                             #ifdef COLORED_LIGHT
                                 lightVarying = 2.0,
                             #endif
                             lmCoord.x = min(lmCoord.x, 0.87), specB = 4.15, mat = 20000.0, color.rgb = vec3(0.0, 1.0, 0.0),
+                            #ifndef REFLECTION_SPECULAR
+                                specB -= fract(specB) * 0.85,
+                            #endif
                             specR = 0.5, specG = 1.0;
                     } else {
                         if (mc_Entity.x == 11076) // Crimson Fungus, Warped Fungus, Twisting Vines, Weeping Vines
@@ -572,10 +586,10 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                                 lightVarying = 5.0,
                             #endif
                             specB = 12.0003, lmCoord.x = min(lmCoord.x, 0.885), mipmapDisabling = 1.0;
-                        else if (mc_Entity.x == 11110) // Sculk Sensor Inactive
-                            specB = 0.01, lmCoord = vec2(0.0);
-                        else if (mc_Entity.x == 11111) // Sculk Sensor Active
-                            specB = 0.05, lmCoord = vec2(0.0);
+                        else if (mc_Entity.x == 11110) // Sculk++ 0.01
+                            specR = 12.065, specB = 0.01, mat = 130.0;
+                        else if (mc_Entity.x == 11111) // Sculk++ 0.03
+                            specR = 12.065, specB = 0.03, mat = 130.0;
                         else if (mc_Entity.x == 11112) // Lit Candles
                             #ifdef COLORED_LIGHT
                                 lightVarying = 3.0,
@@ -584,43 +598,120 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                     }
                 } else {
                     if (mc_Entity.x < 11129.5) {
-                        if (mc_Entity.x < 11121.5) {
-                            if (mc_Entity.x == 11116) // Diamond Ore, Emerald Ore
-                                #ifdef EMISSIVE_ORES
-                                    specB = 0.30, mat = 168.0,
-                                #endif
-                                #ifdef NOISY_TEXTURES
-                                    noiseVarying = 0.77,
-                                #endif
-                                specR = 20.04;
-                            else if (mc_Entity.x == 11117) // Deepslate Diamond Ore, Deepslate Emerald Ore
-                                #ifdef EMISSIVE_ORES
-                                    specB = 0.30, mat = 168.0,
-                                #endif
-                                #ifdef NOISY_TEXTURES
-                                    noiseVarying = 0.5,
-                                #endif
-                                specR = 12.065;
-                            else if (mc_Entity.x == 11120) // Gold Ore, Lapis Ore
-                                #ifdef EMISSIVE_ORES
-                                    specB = 0.08, mat = 168.0,
-                                #endif
-                                #ifdef NOISY_TEXTURES
-                                    noiseVarying = 0.77,
-                                #endif
-                                specR = 20.04;
-                            else if (mc_Entity.x == 11121) // Deepslate Gold Ore, Deepslate Lapis Ore
-                                #ifdef EMISSIVE_ORES
-                                    specB = 0.08, mat = 168.0,
-                                #endif
-                                #ifdef NOISY_TEXTURES
-                                    noiseVarying = 0.5,
-                                #endif
-                                specR = 12.065;
+                        if (mc_Entity.x < 11123.5) {
+                            if (mc_Entity.x < 11119.5) {
+                                if (mc_Entity.x == 11116) // Diamond Ore
+                                    #ifdef EMISSIVE_ORES
+                                        #ifdef EMISSIVE_DIAMOND_ORE
+                                            specB = 0.30,
+                                        #else
+                                            specG = 0.001,
+                                        #endif
+                                    #else
+                                        specG = 0.001,
+                                    #endif
+                                    #ifdef NOISY_TEXTURES
+                                        noiseVarying = 0.77,
+                                    #endif
+                                    mat = 168.0, specR = 20.04;
+                                else if (mc_Entity.x == 11117) // Deepslate Diamond Ore
+                                    #ifdef EMISSIVE_ORES
+                                        #ifdef EMISSIVE_DIAMOND_ORE
+                                            specB = 0.30,
+                                        #else
+                                            specG = 0.001,
+                                        #endif
+                                    #else
+                                        specG = 0.001,
+                                    #endif
+                                    #ifdef NOISY_TEXTURES
+                                        noiseVarying = 0.5,
+                                    #endif
+                                    mat = 168.0, specR = 12.065;
+                                else if (mc_Entity.x == 11118) // Emerald Ore
+                                    #ifdef EMISSIVE_ORES
+                                        #ifdef EMISSIVE_EMERALD_ORE
+                                            specB = 0.30,
+                                        #else
+                                            specG = 0.0015,
+                                        #endif
+                                    #else
+                                        specG = 0.0015,
+                                    #endif
+                                    #ifdef NOISY_TEXTURES
+                                        noiseVarying = 0.77,
+                                    #endif
+                                    mat = 168.0, specR = 20.04;
+                                else if (mc_Entity.x == 11119) // Deepslate Emerald Ore
+                                    #ifdef EMISSIVE_ORES
+                                        #ifdef EMISSIVE_EMERALD_ORE
+                                            specB = 0.30,
+                                        #else
+                                            specG = 0.0015,
+                                        #endif
+                                    #else
+                                        specG = 0.0015,
+                                    #endif
+                                    #ifdef NOISY_TEXTURES
+                                        noiseVarying = 0.5,
+                                    #endif
+                                    mat = 168.0, specR = 12.065;
+                            } else {
+                                if (mc_Entity.x == 11120) // Gold Ore
+                                    #ifdef EMISSIVE_ORES
+                                        #ifdef EMISSIVE_GOLD_ORE
+                                            specB = 0.08,
+                                        #else
+                                            specG = 0.002,
+                                        #endif
+                                    #else
+                                        specG = 0.002,
+                                    #endif
+                                    #ifdef NOISY_TEXTURES
+                                        noiseVarying = 0.77,
+                                    #endif
+                                    mat = 168.0, specR = 20.04;
+                                else if (mc_Entity.x == 11121) // Deepslate Gold Ore
+                                    #ifdef EMISSIVE_ORES
+                                        #ifdef EMISSIVE_GOLD_ORE
+                                            specB = 0.08,
+                                        #else
+                                            specG = 0.002,
+                                        #endif
+                                    #else
+                                        specG = 0.002,
+                                    #endif
+                                    #ifdef NOISY_TEXTURES
+                                        noiseVarying = 0.5,
+                                    #endif
+                                    mat = 168.0, specR = 12.065;
+                                else if (mc_Entity.x == 11122) // Lapis Ore
+                                    #ifdef EMISSIVE_ORES
+                                        #ifdef EMISSIVE_LAPIS_ORE
+                                            specB = 0.08, mat = 168.0,
+                                        #endif
+                                    #endif
+                                    #ifdef NOISY_TEXTURES
+                                        noiseVarying = 0.77,
+                                    #endif
+                                    specR = 20.04;
+                                else if (mc_Entity.x == 11123) // Deepslate Lapis Ore
+                                    #ifdef EMISSIVE_ORES
+                                        #ifdef EMISSIVE_LAPIS_ORE
+                                            specB = 0.08, mat = 168.0,
+                                        #endif
+                                    #endif
+                                    #ifdef NOISY_TEXTURES
+                                        noiseVarying = 0.5,
+                                    #endif
+                                    specR = 12.065;
+                            }
                         } else {
                             if (mc_Entity.x == 11124) // Redstone Ore Unlit
                                 #ifdef EMISSIVE_ORES
-                                    specB = 4.2, mat = 174.0,
+                                    #ifdef EMISSIVE_REDSTONE_ORE
+                                        specB = 4.2, mat = 174.0,
+                                    #endif
                                 #endif
                                 #ifdef NOISY_TEXTURES
                                     noiseVarying = 0.77,
@@ -628,7 +719,9 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                                 specR = 20.04;
                             else if (mc_Entity.x == 11125) // Deepslate Redstone Ore Unlit
                                 #ifdef EMISSIVE_ORES
-                                    specB = 4.2, mat = 174.0,
+                                    #ifdef EMISSIVE_REDSTONE_ORE
+                                        specB = 4.2, mat = 174.0,
+                                    #endif
                                 #endif
                                 #ifdef NOISY_TEXTURES
                                     noiseVarying = 0.5,
@@ -660,44 +753,44 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                             if (mc_Entity.x == 11132) // Iron Ore
                                 #ifdef EMISSIVE_ORES
                                     #ifdef EMISSIVE_IRON_ORE
-                                        specB = 0.05, mat = 168.0, specG = 0.07,
+                                        specB = 0.05,
                                     #endif
                                 #endif
                                 #ifdef NOISY_TEXTURES
                                     noiseVarying = 0.77,
                                 #endif
-                                specR = 20.04;
+                                mat = 168.0, specG = 0.07, specR = 20.04;
                             else if (mc_Entity.x == 11133) // Deepslate Iron Ore
                                 #ifdef EMISSIVE_ORES
                                     #ifdef EMISSIVE_IRON_ORE
-                                        specB = 0.05, mat = 168.0, specG = 0.07,
+                                        specB = 0.05,
                                     #endif
                                 #endif
                                 #ifdef NOISY_TEXTURES
                                     noiseVarying = 0.5,
                                 #endif
-                                specR = 12.065;
+                                mat = 168.0, specG = 0.07, specR = 12.065;
                         } else {
                             if (mc_Entity.x == 11136) // Copper Ore
                                 #ifdef EMISSIVE_ORES
                                     #ifdef EMISSIVE_COPPER_ORE
-                                        specB = 2.04, mat = 168.0, specG = 0.1,
+                                        specB = 2.02,
                                     #endif
                                 #endif
                                 #ifdef NOISY_TEXTURES
                                     noiseVarying = 0.77,
                                 #endif
-                                specR = 20.04;
+                                mat = 168.0, specG = 0.1, specR = 20.04;
                             else if (mc_Entity.x == 11137) // Deepslate Copper Ore
                                 #ifdef EMISSIVE_ORES
                                     #ifdef EMISSIVE_COPPER_ORE
-                                        specB = 2.04, mat = 168.0, specG = 0.1,
+                                        specB = 2.02,
                                     #endif
                                 #endif
                                 #ifdef NOISY_TEXTURES
                                     noiseVarying = 0.5,
                                 #endif
-                                specR = 12.065;
+                                mat = 168.0, specG = 0.1, specR = 12.065;
                             else if (mc_Entity.x == 11200) // Rails
                                 mat = 184.0, lmCoord.x = clamp(lmCoord.x, 0.0, 0.87), mipmapDisabling = 1.0;
                         }

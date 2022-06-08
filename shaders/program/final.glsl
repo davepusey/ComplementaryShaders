@@ -40,13 +40,15 @@ const int gaux3Format = RG16; 				//normals
 const int gaux4Format = RGB8; 				//taa mask & galaxy image
 
 #ifdef COLORED_LIGHT
-const int colortex8Format = RGB16;
-const int colortex9Format = RGB16;
+	const int colortex8Format = RGB16;
+	const int colortex9Format = RGB16;
 #endif
 */
 
 const bool shadowHardwareFiltering = true;
 const float shadowDistanceRenderMul = 1.0;
+
+const float entityShadowDistanceMul = 0.125; // Iris devs may bless us with their power
 
 const int noiseTextureResolution = 512;
 
@@ -72,7 +74,7 @@ const float ambientOcclusionLevel = 1.0;
 
 		for(int i = 0; i < 4; i++) {
 			vec2 offset = sharpenOffsets[i] * view;
-			color -= texture2DLod(colortex1, texCoord2 + offset, 0.0).rgb * mult;
+			color -= texture2DLod(colortex1, texCoord2 + offset, 0).rgb * mult;
 		}
 	}
 #endif
@@ -98,15 +100,15 @@ void main() {
 	*/
 
 	#if CHROMATIC_ABERRATION < 1
-		vec3 color = texture2DLod(colortex1, texCoord2, 0.0).rgb;
+		vec3 color = texture2DLod(colortex1, texCoord2, 0).rgb;
 	#else
 		float midDistX = texCoord2.x - 0.5;
 		float midDistY = texCoord2.y - 0.5;
 		vec2 scale = vec2(1.0, viewHeight / viewWidth);
 		vec2 aberration = vec2(midDistX, midDistY) * (2.0 / vec2(viewWidth, viewHeight)) * scale * CHROMATIC_ABERRATION;
-		vec3 color = vec3(texture2DLod(colortex1, texCoord2 + aberration, 0.0).r,
-						  texture2DLod(colortex1, texCoord2, 0.0).g,
-						  texture2DLod(colortex1, texCoord2 - aberration, 0.0).b);
+		vec3 color = vec3(texture2DLod(colortex1, texCoord2 + aberration, 0).r,
+						  texture2DLod(colortex1, texCoord2, 0).g,
+						  texture2DLod(colortex1, texCoord2 - aberration, 0).b);
 	#endif
 
 	#if SHARPEN > 0

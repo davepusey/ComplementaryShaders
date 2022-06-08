@@ -31,9 +31,13 @@ varying vec4 color;
 		varying vec3 viewVector;
 	#endif
 
+	varying vec4 vTexCoordAM;
+
 	#if !defined COMPBR || defined NORMAL_MAPPING || defined NOISY_TEXTURES || defined SNOW_MODE
-		varying vec4 vTexCoord;
-		varying vec4 vTexCoordAM;
+		varying vec2 vTexCoord;
+		#if defined GENERATED_NORMALS || defined NOISY_TEXTURES
+			varying vec2 vTexCoordL;
+		#endif
 	#endif
 
 	#if defined NORMAL_MAPPING || defined REFLECTION_RAIN
@@ -66,7 +70,7 @@ uniform int isEyeInWater;
 uniform int moonPhase;
 #define UNIFORM_moonPhase
 
-#if defined DYNAMIC_SHADER_LIGHT || SHOW_LIGHT_LEVELS == 1 || SHOW_LIGHT_LEVELS == 1
+#if defined DYNAMIC_SHADER_LIGHT || SHOW_LIGHT_LEVELS == 1 || SHOW_LIGHT_LEVELS == 3
 	uniform int heldItemId, heldItemId2;
 
 	uniform int heldBlockLightValue;
@@ -92,7 +96,7 @@ uniform mat4 shadowModelView;
 
 uniform sampler2D texture;
 
-#if ((defined WATER_CAUSTICS || defined SNOW_MODE || defined CLOUD_SHADOW || defined RAIN_PUDDLES) && defined OVERWORLD) || defined RANDOM_BLOCKLIGHT || defined NOISY_TEXTURES || defined GENERATED_NORMALS
+#if ((defined WATER_CAUSTICS || defined SNOW_MODE || defined CLOUD_SHADOW || defined REFLECTION_RAIN) && defined OVERWORLD) || defined RANDOM_BLOCKLIGHT || defined NOISY_TEXTURES || defined GENERATED_NORMALS
 	uniform sampler2D noisetex;
 #endif
 
@@ -125,8 +129,12 @@ uniform sampler2D texture;
 	uniform sampler2D colortex9;
 #endif
 
-#if defined NOISY_TEXTURES || defined GENERATED_NORMALS
+#ifdef COMPBR
 	uniform ivec2 atlasSize;
+#endif
+
+#if MC_VERSION >= 11900
+	uniform float darknessLightFactor;
 #endif
 
 //Common Variables//
@@ -140,7 +148,7 @@ float vsBrightness = clamp(screenBrightness, 0.0, 1.0);
 	float frametime = frameTimeCounter * ANIMATION_SPEED;
 #endif
 
-#if defined ADV_MAT && RP_SUPPORT > 2 || defined NOISY_TEXTURES || defined GENERATED_NORMALS
+#if defined ADV_MAT && RP_SUPPORT > 2 || defined COMPBR
 	vec2 dcdx = dFdx(texCoord.xy);
 	vec2 dcdy = dFdy(texCoord.xy);
 #endif
@@ -154,11 +162,6 @@ float vsBrightness = clamp(screenBrightness, 0.0, 1.0);
 //Common Functions//
 float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
-}
-
-float InterleavedGradientNoise() {
-	float n = 52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y);
-	return fract(n + frameCounter / 8.0);
 }
 
 //Includes//
@@ -176,39 +179,47 @@ float InterleavedGradientNoise() {
 #endif
 
 #ifdef ADV_MAT
-#include "/lib/util/encode.glsl"
-#include "/lib/lighting/ggx.glsl"
+	#include "/lib/util/encode.glsl"
+	#include "/lib/lighting/ggx.glsl"
 
-#ifndef COMPBR
-#include "/lib/surface/materialGbuffers.glsl"
-#endif
+	#ifndef COMPBR
+		#include "/lib/surface/materialGbuffers.glsl"
+	#endif
 
-#if defined PARALLAX || defined SELF_SHADOW
-#include "/lib/util/dither.glsl"
-#include "/lib/surface/parallax.glsl"
-#endif
+	#if defined PARALLAX || defined SELF_SHADOW
+		#include "/lib/util/dither.glsl"
+		#include "/lib/surface/parallax.glsl"
+	#endif
 
-#ifdef DIRECTIONAL_LIGHTMAP
-#include "/lib/surface/directionalLightmap.glsl"
-#endif
+	#ifdef DIRECTIONAL_LIGHTMAP
+		#include "/lib/surface/directionalLightmap.glsl"
+	#endif
 
-#if defined REFLECTION_RAIN && defined OVERWORLD
-#include "/lib/surface/rainPuddles.glsl"
-#endif
+	#if defined REFLECTION_RAIN && defined OVERWORLD
+		#include "/lib/surface/rainPuddles.glsl"
+	#endif
+
+	#ifdef GENERATED_NORMALS
+		#include "/lib/surface/autoGenNormals.glsl"
+	#endif
+
+	#ifdef NOISY_TEXTURES
+		#include "/lib/surface/noiseCoatedTextures.glsl"
+	#endif
 #endif
 
 //Program//
 void main() {
 	vec4 albedo = vec4(0.0);
-	if (mipmapDisabling < 0.5) {
+	if (mipmapDisabling < 0.25) {
 		#if defined END && defined COMPATIBILITY_MODE && !defined SEVEN
 			albedo.rgb = texture2D(texture, texCoord).rgb;
-			albedo.a = texture2DLod(texture, texCoord, 0.0).a; // For BetterEnd compatibility
+			albedo.a = texture2DLod(texture, texCoord, 0).a; // For BetterEnd compatibility
 		#else
 			albedo = texture2D(texture, texCoord);
 		#endif
 	} else {
-		albedo = texture2DLod(texture, texCoord, 0.0);
+		albedo = texture2DLod(texture, texCoord, 0);
 	}
 	vec3 albedoP = albedo.rgb;
 	if (mat < 10000.0) albedo.rgb *= color.rgb;
@@ -229,8 +240,8 @@ void main() {
 		vec3 rawAlbedo = vec3(0.0);
 		vec4 normalMap = vec4(0.0, 0.0, 1.0, 1.0);
 
-		#if !defined COMPBR || defined NORMAL_MAPPING
-			vec2 newCoord = vTexCoord.st * vTexCoordAM.pq + vTexCoordAM.st;
+		#ifndef COMPBR
+			vec2 newCoord = vTexCoord.xy * vTexCoordAM.zw + vTexCoordAM.xy;
 		#endif
 		
 		#if defined PARALLAX || defined SELF_SHADOW
@@ -242,8 +253,8 @@ void main() {
 			float skipParallax = float(blockEntityId == 63 || material == 4.0); // Fixes signs and lava
 			if (skipParallax < 0.5) {
 				GetParallaxCoord(parallaxFade, newCoord, parallaxDepth);
-				if (mipmapDisabling < 0.5) albedo = texture2DGradARB(texture, newCoord, dcdx, dcdy) * vec4(color.rgb, 1.0);
-				else 					   albedo = texture2DLod(texture, newCoord, 0.0) * vec4(color.rgb, 1.0);
+				if (mipmapDisabling < 0.25) albedo = texture2DGradARB(texture, newCoord, dcdx, dcdy) * vec4(color.rgb, 1.0);
+				else 					    albedo = texture2DLod(texture, newCoord, 0) * vec4(color.rgb, 1.0);
 			}
 		#endif
 	#endif
@@ -265,9 +276,7 @@ void main() {
 		//Subsurface Scattering
 		#if SHADOW_SUBSURFACE == 0
 			float subsurface = 0.0;
-		#elif SHADOW_SUBSURFACE == 1
-			float subsurface = foliage * SCATTERING_FOLIAGE;
-		#elif SHADOW_SUBSURFACE == 2
+		#else
 			float subsurface = foliage * SCATTERING_FOLIAGE + leaves * SCATTERING_LEAVES;
 		#endif
 		#ifndef SHADOWS
@@ -277,6 +286,7 @@ void main() {
 
 		#ifdef COMPBR
 			float lAlbedoP = length(albedoP);
+			float extraSpecularM = extraSpecular;
 		
 			if (mat > 10000.0) { // More control over lAlbedoP at the cost of color.rgb
 				if (mat < 19000.0) {
@@ -342,6 +352,7 @@ void main() {
 
 		float materialAO = 1.0;
 		float cauldron = 0.0;
+		float snowFactor = 0.0;
 
 		#ifdef ADV_MAT
 			#if defined REFLECTION_RAIN && defined RAIN_REF_BIOME_CHECK
@@ -372,72 +383,24 @@ void main() {
 				}
 
 				#if defined NOISY_TEXTURES || defined GENERATED_NORMALS
-					float atlasRatio = atlasSize.x / atlasSize.y;
-					vec2 mipx = dcdx * atlasSize;
-					vec2 mipy = dcdy * atlasSize;
-					float delta = max(dot(mipx, mipx), dot(mipy, mipy));
-					float miplevel = max(0.5 * log2(delta), 0.0);
+					#include "/lib/other/mipLevel.glsl"
 				#endif
 			#endif
 			
 			#ifdef NORMAL_MAPPING
-				#ifdef GENERATED_NORMALS
-					float packSize = 128.0;
-					float lOriginalAlbedo = length(albedoP);
-					float normalMult1 = max(0.1 - miplevel, 0.0) * 12.0 * (1.0 - cauldron);
-					float normalMult2 = 1.5 * sqrt(NORMAL_MULTIPLIER);
-					float normalClamp1 = 0.05;
-					float normalClamp2 = 0.5;
-					vec2 checkMult = 1.0 / vTexCoordAM.pq;
-					vec2 offsetR = vec2(0.015625 / packSize);
-					offsetR.y *= atlasRatio;
-					float difSum = 0.0;
-					if (normalMult1 > 0.0) {
-						for(int i = 0; i < 4; i++) {
-							vec2 offset = vec2(0.0, 0.0);
-							if (i == 0) offset = vec2( 0.0, offsetR.y);
-							if (i == 1) offset = vec2( offsetR.x, 0.0);
-							if (i == 2) offset = vec2( 0.0,-offsetR.y);
-							if (i == 3) offset = vec2(-offsetR.x, 0.0);
-							vec2 offsetCoord = newCoord + offset;
-
-							vec2 checkOffset = offset * checkMult;
-							if (i == 0 && vTexCoord.y + checkOffset.y > 1.0) continue;
-							if (i == 1 && vTexCoord.x + checkOffset.x > 1.0) continue;
-							if (i == 2 && vTexCoord.y + checkOffset.y < 0.0) continue;
-							if (i == 3 && vTexCoord.x + checkOffset.x < 0.0) continue;
-
-							float lNearbyAlbedo = length(texture2D(texture, offsetCoord).rgb);
-							float dif = lOriginalAlbedo - lNearbyAlbedo;
-							if (dif > 0.0) dif = max(dif - normalClamp1, 0.0);
-							else           dif = min(dif + normalClamp1, 0.0);
-							dif *= normalMult1;
-							dif = clamp(dif, -normalClamp2, normalClamp2) * normalMult2;
-							if (i == 0) {
-								normalMap.y += dif;
-							}
-							if (i == 1) {
-								normalMap.x += dif;
-							}
-							if (i == 2) {
-								normalMap.y -= dif;
-							}
-							if (i == 3) {
-								normalMap.x -= dif;
-							}
-							difSum += abs(dif);
-						}
-						float difSumRaw = difSum / normalMult2;
-						if (difSumRaw > normalClamp2) normalMap.xy = mix(normalMap.xy, vec2(0.0, 0.0), max(difSumRaw - normalClamp2, 0.0) * 1.0);
-					}
-				#endif
-
 				mat3 tbnMatrix = mat3(tangent.x, binormal.x, normal.x,
 									  tangent.y, binormal.y, normal.y,
 									  tangent.z, binormal.z, normal.z);
 
-				if (normalMap.x > -0.999 && normalMap.y > -0.999)
-					newNormal = clamp(normalize(normalMap.xyz * tbnMatrix), vec3(-1.0), vec3(1.0));
+				#ifdef GENERATED_NORMALS
+					if (cauldron < 0.5)
+					AutoGenerateNormals(normalMap, albedoP, delta);
+					if (normalMap != vec4(0.0, 0.0, 1.0, 1.0))
+				#endif
+				{
+					if (normalMap.x > -0.999 && normalMap.y > -0.999)
+						newNormal = clamp(normalize(normalMap.xyz * tbnMatrix), vec3(-1.0), vec3(1.0));
+				}
 			#endif
 		#endif
 
@@ -445,7 +408,6 @@ void main() {
 
 		#ifdef SNOW_MODE
 			#ifdef OVERWORLD
-				float snowFactor = 0.0;
 				if (noSnow + cauldron < 0.5) {
 					vec3 snowColor = vec3(0.5, 0.5, 0.65);
 					vec2 snowCoord = vTexCoord.xy / 8.0;
@@ -462,36 +424,15 @@ void main() {
 						float snowFactor2 = snowFactor * (0.75 + 0.5 * snowNoise);
 						smoothness = mix(smoothness, 0.45, snowFactor2);
 						metalness = mix(metalness, 0.0, snowFactor2);
+						//emissive = mix(emissive, 0.0, min(snowFactor2 * 5.0, 1.0));
 					#endif
 				}
 			#endif
 		#endif
 
 		#ifdef NOISY_TEXTURES
-			if (cauldron < 0.5) {
-				float packSize2 = 64.0;
-				vec2 noiseCoord = vTexCoord.xy;
-				noiseCoord.xy += 0.002;
-				noiseCoord = floor(noiseCoord.xy * packSize2 * vTexCoordAM.pq * 32.0 * vec2(2.0, 2.0 / atlasRatio)) / packSize2 / 12.0;
-				float noiseVaryingM = noiseVarying;
-				if (noiseVarying < 999.0) {
-					noiseCoord += 0.21 * (floor((worldPos.xz + cameraPosition.xz) + 0.001) + floor((worldPos.y + cameraPosition.y) + 0.001));
-				} else {
-					noiseVaryingM -= 1000.0;
-				}
-				float noiseTexture = texture2D(noisetex, noiseCoord).r;
-				noiseTexture = noiseTexture * 0.75 + 0.625;
-				float colorBrightness = 0.2126 * albedo.r + 0.7152 * albedo.g + 0.0722 * albedo.b;
-				float noiseFactor = 0.7 * sqrt(1.0 - colorBrightness) * (1.0 - 0.5 * metalness) * (1.0 - 0.25 * smoothness) * max(1.0 - emissive, 0.0);
-				#if defined SNOW_MODE && defined OVERWORLD
-					noiseFactor *= 2.0 * max(0.5 - snowFactor, 0.0);
-				#endif
-				noiseFactor *= noiseVaryingM;	
-				noiseFactor *= max(1.0 - miplevel * 0.25, 0.0);
-				noiseTexture = pow(noiseTexture, noiseFactor);
-				albedo.rgb *= noiseTexture;
-				smoothness = min(smoothness * sqrt(2.0 - noiseTexture), 1.0);
-			}
+			if (cauldron < 0.5)
+				NoiseCoatTextures(albedo, smoothness, emissive, metalness, worldPos, miplevel, noiseVarying, snowFactor);
 		#endif
 
 		#ifdef WHITE_WORLD
@@ -507,8 +448,8 @@ void main() {
 
 		float smoothLighting = color.a;
 		#ifdef OLD_LIGHTING_FIX 
-			//Probably not worth the %4 fps loss
-			//Don't forget to apply the same fix to gbuffers_water if I end up making this an option
+			// Probably not worth the %4 fps loss
+			// Don't forget to apply the same code to gbuffers_water if I end up making this an option
 			if (smoothLighting < 0.9999999) {
 				float absNdotE = abs(dot(newNormal, eastVec));
 				float absNdotN = abs(dot(newNormal, northVec));
@@ -526,13 +467,14 @@ void main() {
 		float parallaxShadow = 1.0;
 		#ifdef ADV_MAT
 			rawAlbedo = albedo.rgb * 0.999 + 0.001;
-			#ifdef COMPBR
-				//albedo.rgb *= ao;
-				if (metalness > 0.801) {
+			#ifdef REFLECTION_SPECULAR
+				#ifdef COMPBR
+					if (metalness > 0.801) {
+						albedo.rgb *= (1.0 - metalness*0.65);
+					}
+				#else
 					albedo.rgb *= (1.0 - metalness*0.65);
-				}
-			#else
-				albedo.rgb *= (1.0 - metalness*0.65);
+				#endif
 			#endif
 
 			#if defined SELF_SHADOW && defined NORMAL_MAPPING
@@ -570,8 +512,12 @@ void main() {
 								vec2 rainPos = worldPos.xz + cameraPosition.xz;
 
 								skymapMod = lmCoord.y * 16.0 - 15.5;
-								float lmCX = pow(lmCoord.x * 1.3, 50.0);
-								skymapMod = max(skymapMod - lmCX, 0.0);
+								#if REFLECTION_RAIN_COVERAGE < 100
+									float lmCX = pow(lmCoord.x * 1.3, 50.0);
+									skymapMod = max(skymapMod - lmCX, 0.0);
+								#else
+									skymapMod = max(skymapMod, 0.0);
+								#endif
 
 								float puddleSize = 0.0025;
 								skymapMod *= GetPuddles(rainPos * puddleSize);
@@ -600,7 +546,6 @@ void main() {
 								vec3 puddleNormal = clamp(normalize(pnormalMap * tbnMatrix),vec3(-1.0),vec3(1.0));
 
 								albedo.rgb *= 1.0 - sqrt(length(pnormalMap.xy)) * 0.8 * skymapModx2 * (rainStrengthS);
-								//albedo.rgb *= 0.0;
 
 								vec3 rainNormal = normalize(mix(newNormal, puddleNormal, rainStrengthS));
 
@@ -660,7 +605,7 @@ void main() {
 
 			#if defined COMPBR && defined REFLECTION_SPECULAR
 				smoothness *= 0.5;
-				if (extraSpecular > 0.5) smoothness += 0.5;
+				if (extraSpecularM > 0.5) smoothness += 0.5;
 			#endif
 		#endif
 		
@@ -733,17 +678,17 @@ void main() {
 #ifdef VSH
 
 //Uniforms//
-
 uniform float frameTimeCounter;
+uniform float rainStrengthS;
 
 uniform vec3 cameraPosition;
 
 uniform mat4 gbufferModelView, gbufferModelViewInverse;
 
 #if AA > 1
-uniform int frameCounter;
+	uniform int frameCounter;
 
-uniform float viewWidth, viewHeight;
+	uniform float viewWidth, viewHeight;
 #endif
 
 //Attributes//
@@ -751,7 +696,7 @@ attribute vec4 mc_Entity;
 attribute vec4 mc_midTexCoord;
 
 #ifdef ADV_MAT
-attribute vec4 at_tangent;
+	attribute vec4 at_tangent;
 #endif
 
 //Common Variables//
@@ -818,14 +763,19 @@ void main() {
 			#endif
 		#endif
 
-		vec2 midCoord = (gl_TextureMatrix[0] * mc_midTexCoord).st;
+		vec2 midCoord = (gl_TextureMatrix[0] * mc_midTexCoord).xy;
 		vec2 texMinMidCoord = texCoord - midCoord;
 
+		vTexCoordAM.zw  = abs(texMinMidCoord) * 2;
+
 		#if !defined COMPBR || defined NORMAL_MAPPING || defined NOISY_TEXTURES || defined SNOW_MODE
-			vTexCoordAM.pq  = abs(texMinMidCoord) * 2;
-			vTexCoordAM.st  = min(texCoord, midCoord - texMinMidCoord);
+			vTexCoordAM.xy  = min(texCoord, midCoord - texMinMidCoord);
 			
 			vTexCoord.xy    = sign(texMinMidCoord) * 0.5 + 0.5;
+
+			#ifdef COMPBR
+				vTexCoordL  = texMinMidCoord * 2;
+			#endif
 		#endif
 	#endif
 	

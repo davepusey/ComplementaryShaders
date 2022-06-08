@@ -46,6 +46,11 @@ void main() {
 	vec3 emissiveLighting = albedo.rgb * emissive * 20.0 * EMISSIVE_MULTIPLIER;
     albedo.rgb *= emissiveLighting;
 	albedo.a *= albedo.a * albedo.a;
+
+	#if MC_VERSION < 10800
+		albedo.a = max(albedo.a, 0.101);
+		albedo.rgb *= 0.125;
+	#endif
     
 	#ifdef GBUFFER_CODING
 		albedo.rgb = vec3(0.0, 170.0, 170.0) / 255.0;

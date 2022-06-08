@@ -39,7 +39,7 @@ float GetLinearDepth(float depth) {
 
 //Program//
 void main() {
-    vec3 color = texture2DLod(colortex1, texCoord, 0.0).rgb;
+    vec3 color = texture2DLod(colortex1, texCoord, 0).rgb;
 
     #if AA > 1
         vec4 temp = vec4(texture2D(colortex2, texCoord).r, 0.0, 0.0, 0.0);

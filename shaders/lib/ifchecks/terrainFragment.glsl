@@ -29,6 +29,11 @@ if (mat > 100.5 && mat < 10000.0) {
                         emissive = min(pow2(lAlbedoP * lAlbedoP) * emissive * 3.0, 0.3);
                     #endif
                 }
+                if (material == 130.0) { // Sculk++
+                    emissive *= max((albedo.b - albedo.r) - 0.1, 0.0) * 0.5
+                              + 100.0 * max(albedo.g - albedo.b, 0.0) * float(albedo.r < albedo.b - 0.1)
+                              ;
+                }
                 else if (material == 132.0) { // Command Blocks
                     #ifndef WORLD_CURVATURE
                         vec3 comPos = fract(worldPos.xyz + cameraPosition.xyz);
@@ -43,6 +48,14 @@ if (mat > 100.5 && mat < 10000.0) {
                         dif = abs(dif);
                         emissive = float(max(dif.r, max(dif.g, dif.b)) > 0.1) * 25.0;
                         emissive *= float(albedo.r > 0.44 || albedo.g > 0.29);
+
+                        if (CheckForColor(albedo.rgb, vec3(207, 166, 139)) // Fix for Iris' precision
+                        ||  CheckForColor(albedo.rgb, vec3(201, 143, 107))
+                        ||  CheckForColor(albedo.rgb, vec3(161, 195, 180))
+                        ||  CheckForColor(albedo.rgb, vec3(131, 181, 145))
+                        ||  CheckForColor(albedo.rgb, vec3(155, 139, 207))
+                        ||  CheckForColor(albedo.rgb, vec3(135, 121, 181))) emissive = 0.0;
+                        
                         #ifdef ALTERNATIVE_COMMAND_BLOCK
                             if (emissive > 0.01) {
                                 albedo.rgb *= vec3(0.88, 1.32, 1.9);
@@ -121,7 +134,7 @@ if (mat > 100.5 && mat < 10000.0) {
         }
     } else {
         if (mat < 170.5) {
-            if (mat < 160.5) {
+            if (mat < 162.5) {
                 if (material == 156.0) { // Campfires, Powered Lever
                     if (albedo.g + albedo.b > albedo.r * 2.3 && albedo.g > 0.38 && albedo.g > albedo.b * 0.9) emissive = 0.09;
                     if (albedo.r > albedo.b * 3.0 || albedo.r > 0.8) emissive = 0.65;
@@ -156,7 +169,7 @@ if (mat > 100.5 && mat < 10000.0) {
                         #endif
                     }
                     #if MC_VERSION >= 11700
-                    if (albedo.r * 1.5 > albedo.g + albedo.b) { // Cauldron Lava
+                    else if (albedo.r * 1.5 > albedo.g + albedo.b) { // Cauldron Lava
                         metalness = 0.0;
                         smoothness = 0.0;
 
@@ -171,12 +184,19 @@ if (mat > 100.5 && mat < 10000.0) {
                             albedo.rgb *= LAVA_INTENSITY * 0.9;
                         }
                     }
-                    if (dot(albedo.rgb, albedo.rgb) > 2.7) { // Cauldron Powder Snow
+                    else if (dot(albedo.rgb, albedo.rgb) > 2.7) { // Cauldron Powder Snow
                         metalness = 0.0;
                         smoothness = pow(lAlbedoP, 1.8037) * 0.185;
                         smoothness = min(smoothness, 1.0);
                     }
                     #endif
+                }
+                else if (material == 162.0) { // Glowstone, Magma Block
+					#include "/lib/other/mipLevel.glsl"
+
+                    emissive = pow(lAlbedoP, specB) * fract(specB) * 20.0;
+
+                    emissive += miplevel * 2.5;
                 }
             } else {
                 if (material == 164.0) { // Chorus Plant, Chorus Flower Age 5
@@ -184,12 +204,54 @@ if (mat > 100.5 && mat < 10000.0) {
                         emissive = 1.0;
                     }
                 }
-                else if (material == 168.0) { // Emissive Ores Except Redstone
+                else if (material == 168.0) { // Overworld Ore Handling Except Redstone
                     float stoneDif = max(abs(albedo.r - albedo.g), max(abs(albedo.r - albedo.b), abs(albedo.g - albedo.b)));
                     float brightFactor = max(lAlbedoP - 1.5, 0.0);
                     float ore = max(max(stoneDif - 0.175 + specG, 0.0), brightFactor);
-                    emissive *= sqrt4(ore) * 0.15 * ORE_EMISSION;
+                    #ifdef EMISSIVE_ORES
+                        emissive *= sqrt4(ore) * 0.15 * ORE_EMISSION;
+                    #endif
                     metalness = 0.0;
+                    
+                    #if !defined EMISSIVE_ORES || !defined EMISSIVE_IRON_ORE
+                        if (abs(specG - 0.07) < 0.0001) {
+                            float oreM = min(pow2(ore * ore) * 300.0, 1.0);
+                            smoothness = mix(smoothness, 1.0, oreM);
+                            metalness = mix(metalness, 0.8, sqrt3(oreM));
+                        }
+                    #endif
+                    #if !defined EMISSIVE_ORES || !defined EMISSIVE_COPPER_ORE
+                        if (abs(specG - 0.1) < 0.0001) {
+                            float oreM = sqrt3(min(ore * 0.25, 1.0));
+                            smoothness = mix(smoothness, 0.5, oreM);
+                            if (oreM > 0.01) metalness = 0.8;
+                        }
+                    #endif
+                    #if !defined EMISSIVE_ORES || !defined EMISSIVE_GOLD_ORE
+                        if (abs(specG - 0.002) < 0.0001) {
+                            float oreM = min(pow2(ore * ore) * 40.0, 1.0);
+                            smoothness = mix(smoothness, 0.5, oreM);
+                            if (oreM > 0.01) metalness = 0.8;
+                        }
+                    #endif
+                    #if !defined EMISSIVE_ORES || !defined EMISSIVE_EMERALD_ORE
+                        if (abs(specG - 0.0015) < 0.0001) {
+                            if (ore > 0.01) {
+                                float oreM = 1.0 - min(ore * 0.75, 1.0);
+                                smoothness = mix(smoothness, 1.0, oreM);
+                                extraSpecularM = 1.0;
+                            }
+                        }
+                    #endif
+                    #if !defined EMISSIVE_ORES || !defined EMISSIVE_DIAMOND_ORE
+                        if (abs(specG - 0.001) < 0.0001) {
+                            if (ore > 0.01) {
+                                float oreM = 1.0 - min(ore, 1.0);
+                                smoothness = mix(smoothness, 1.0, oreM);
+                                extraSpecularM = 1.0;
+                            }
+                        }
+                    #endif
                 }
                 else if (material == 170.0) { // Block of Amethyst++
                     smoothness = min(pow((max(1.73 - lAlbedoP, 0.0) + 1.0), 0.81) * 0.5, 1.0);
@@ -229,7 +291,7 @@ if (mat > 100.5 && mat < 10000.0) {
                     float ore = max(max(stoneDif - 0.175 + specG, 0.0), brightFactor);
                     emissive *= sqrt4(ore) * 0.11 * ORE_EMISSION;
                     metalness = 0.0;
-
+                    
                     // Fix white pixels
                     if (emissive > 0.01) {
                         float whitePixelFactor = max(lAlbedoP * lAlbedoP * 2.2, 1.0);

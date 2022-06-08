@@ -92,8 +92,14 @@ void main(){
 			vec3 viewPos = ScreenToView(screenPos);
 		#endif
 
-		vec3 nViewPos = normalize(viewPos.xyz);
+		vec3 worldPos = ViewToWorld(viewPos);
+		float lWorldPos = length(worldPos.xz);
+		float cloudDistance = 290.0;
+		cloudDistance = clamp((cloudDistance - lWorldPos) / cloudDistance, 0.0, 1.0);
+		if (cloudDistance < 0.00001) discard;
+		albedo.a *= min(cloudDistance * 3.0, 1.0);
 
+		vec3 nViewPos = normalize(viewPos.xyz);
 		float NdotU = dot(nViewPos, upVec);
 		float cosS = dot(nViewPos, sunVec);
 
@@ -112,12 +118,6 @@ void main(){
 			meColor *= meFactor * meFactor;
 		}
 		albedo.rgb += meColor * 0.25;
-		
-		vec3 worldPos = ViewToWorld(viewPos);
-		float lWorldPos = length(worldPos.xz);
-		float cloudDistance = 290.0;
-		cloudDistance = clamp((cloudDistance - lWorldPos) / cloudDistance, 0.0, 1.0);
-		albedo.a *= min(cloudDistance * 3.0, 1.0);
 
 		float height = worldPos.y + cameraPosition.y;
 		float cloudHeightFactor = 0.0;

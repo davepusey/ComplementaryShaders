@@ -48,6 +48,7 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
 
   #define WAVING_SPEED 1.00 //[0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10 0.12 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00 2.10 2.20 2.30 2.40 2.50 2.60 2.70 2.80 2.90 3.00 3.50 4.00 4.50 5.00]
   #define WAVING_INTENSITY 1.00 //[0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10 0.12 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00 2.10 2.20 2.30 2.40 2.50 2.60 2.70 2.80 2.90 3.00 3.50 4.00 4.50 5.00 5.25 5.50 5.75 6.00 6.25 6.50 6.75 7.00 7.25 7.50 8.00 8.50 9.00 9.50 10.0 11.0 12.0 13.0 14.0 15.0 17.5 20.0 25.0 30.0 35.0 40.0 45.0 50.0 55.0 60.0 65.0 70.0 75.0 80.0 90.0]
+  #define RAIN_WAVING_INTENSITY 1.00 //[0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10 0.12 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00 2.10 2.20 2.30 2.40 2.50 2.60 2.70 2.80 2.90 3.00 3.50 4.00 4.50 5.00 5.25 5.50 5.75 6.00 6.25 6.50 6.75 7.00 7.25 7.50 8.00 8.50 9.00 9.50 10.0 11.0 12.0 13.0 14.0 15.0 17.5 20.0 25.0 30.0 35.0 40.0 45.0 50.0 55.0 60.0 65.0 70.0 75.0 80.0 90.0]
 //#define DO_WAVING_UNDERGROUND
 //#define DO_WAVING_ON_COMPATIBILITY
   #define WAVING_FOLIAGE
@@ -76,7 +77,9 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #define ENTITY_EFFECT
   #define HAND_SWAY 0.0 //[0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.2 1.4 1.6 1.8 2.0 2.2 2.4 2.6 2.8 3.0]
 //#define SNOW_MODE
+  #define NETHER_REFRACT 1 //[0 1 2 3]
   #define NIGHT_VISION 1 //[1 2]
+//#define VANILLA_UNDERLAVA_COLOR
   #define DYNAMIC_SHADER_LIGHT
   #define DYNAMIC_LIGHT_DISTANCE 14.0 //[4.0 4.5 5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5 9.0 9.5 10.0 11.0 12.0 13.0 14.0 15.0 16.0 17.0 18.0 19.0 20.0 22.0 24.0 26.0 28.0 30.0 32.0 34.0 36.0 38.0 40.0 44.0 48.0 52.0 56.0 60.0 64.0]
   #define GLINT_BRIGHTNESS 1.0 //[0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.2 1.4 1.6 1.8 2.0 2.2 2.4 2.6 2.8 3.0 3.2 3.4 3.6 3.8 4.0 4.2 4.4 4.6 4.8 5.0 5.2 5.4 5.6 5.8 6.0 6.2 6.4 6.6 6.8 7.0 7.2 7.4 7.6 7.8 8.0 8.2 8.4 8.6 8.8 9.0 9.2 9.4 9.6 9.8 10.0 10.2 10.4 10.6 10.8 11.0 11.2 11.4 11.6 11.8 12.0 12.2 12.4 12.6 12.8 13.0 13.2 13.4 13.6 13.8 14.0 14.2 14.4 14.6 14.8 15.0 15.2 15.4 15.6 15.8 16.0 18.0 20.0 22.0 24.0 26.0 28.0 30.0 32.0]
@@ -129,10 +132,16 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #define NORMAL_MULTIPLIER 1.00 //[0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.10 1.20 1.30 1.40 1.50 1.60 1.70 1.80 1.90 2.00 2.25 2.50 2.75 3.00 3.25 3.50 3.75 4.00 4.25 4.50 4.75 5.00]
 
 //#define GENERATED_NORMALS
+//#define SAFE_GENERATED_NORMALS
 //#define NOISY_TEXTURES
   #define EMISSIVE_ORES
   #define EMISSIVE_IRON_ORE
   #define EMISSIVE_COPPER_ORE
+  #define EMISSIVE_GOLD_ORE
+  #define EMISSIVE_REDSTONE_ORE
+  #define EMISSIVE_EMERALD_ORE
+  #define EMISSIVE_LAPIS_ORE
+  #define EMISSIVE_DIAMOND_ORE
   #define ORE_EMISSION 0.50 //[0.01 0.02 0.03 0.05 0.07 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00 2.25 2.50 2.75 3.00 3.25 3.50 3.75 4.00 4.25 4.50 4.75 5.00 6.00 7.00 8.00]
 //#define GLOWING_DEBRIS
 //#define EMISSIVE_NETHER_ORES
@@ -154,12 +163,13 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
 //#define ANAMORPHIC_BLUR
 //#define FOV_SCALED_BLUR
 //#define CHROMATIC_BLUR
-  #define DOF_STRENGTH 32.0 //[1.0 2.0 3.0 4.0 6.0 8.0 12.0 16.0 24.0 32.0 64.0 96.0 128.0 192.0 256.0 384.0 512.0 768.0 1024.0 1536.0 2048.0 3072.0 4096.0]
-  #define NETHER_BLUR_STRENGTH 64.0 //[1.0 2.0 3.0 4.0 6.0 8.0 12.0 16.0 24.0 32.0 64.0 96.0 128.0 192.0 256.0 384.0 512.0 768.0 1024.0 1536.0 2048.0 3072.0 4096.0]
+  #define DOF_STRENGTH 32.0 //[1.0 2.0 3.0 4.0 6.0 8.0 12.0 16.0 24.0 32.0 48.0 64.0 96.0 128.0 192.0 256.0 384.0 512.0 768.0 1024.0 1536.0 2048.0 3072.0 4096.0]
+  #define NETHER_BLUR_STRENGTH 64.0 //[1.0 2.0 3.0 4.0 6.0 8.0 12.0 16.0 24.0 32.0 48.0 64.0 96.0 128.0 192.0 256.0 384.0 512.0 768.0 1024.0 1536.0 2048.0 3072.0 4096.0]
 //#define MOTION_BLUR
   #define MOTION_BLUR_STRENGTH 1.50 //[0.05 0.07 0.10 0.15 0.20 0.25 0.35 0.50 0.75 1.00 1.25 1.50 1.75 2.00 3.00 5.00 10.00]
   #define BLOOM
   #define BLOOM_STRENGTH 0.40 //[0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.75 1.00 100]
+  #define UNDERWATER_BLOOM_STRENGTH 0.40 //[0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.75 1.00]
   #define NETHER_BLOOM_STRENGTH 0.40 //[0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.75 1.00]
 //#define LENS_FLARE
   #define LENS_FLARE_STRENGTH 1.00 //[0.10 0.15 0.20 0.25 0.30 0.40 0.50 0.75 1.00 1.25 1.50 1.75 2.00]
@@ -167,7 +177,7 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #define SHARPEN 0 //[0 1 2 3 4 5 6 7 8 9 10]
   #define CHROMATIC_ABERRATION 0 //[0 1 2 3 4 5 6 7 8 9 10]
   #define AUTO_EXPOSURE 0 //[0 1 2]
-//#define VIGNETTE
+  #define VIGNETTE 1 //[0 1 2]
   #define VIGNETTE_STRENGTH 0.50 //[0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.10 1.20 1.30 1.40 1.50 1.60 1.70 1.80 1.90 2.00 2.25 2.50 2.75 3.00 4.00 5.00]
   #define SUN_GLARE
   #define SUN_GLARE_STRENGTH 1.0 //[0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.2 1.4 1.6 1.8 2.0 2.5 3.0 4.0 5.0]
@@ -212,7 +222,7 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   const float shadowDistance = 192.0; //[64.0 80.0 96.0 112.0 128.0 160.0 192.0 224.0 256.0 320.0 384.0 512.0 768.0 1024.0]
   #define SHADOWS
   #define SHADOW_FILTER
-  #define SHADOW_SUBSURFACE 2 //[0 1 2]
+  #define SHADOW_SUBSURFACE 2 //[0 2 3]
   #define SCATTERING_LEAVES 0.50 //[0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00]
   #define SCATTERING_FOLIAGE 0.80 //[0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00]
   const float shadowMapBias = 1.0 - 25.6 / shadowDistance;
@@ -286,7 +296,7 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #define WATER_G 212 //[0 4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120 124 128 132 136 140 144 148 152 156 160 164 168 172 176 180 184 188 192 196 200 204 208 212 216 220 224 228 232 236 240 244 248 252 255]
   #define WATER_B 255 //[0 4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120 124 128 132 136 140 144 148 152 156 160 164 168 172 176 180 184 188 192 196 200 204 208 212 216 220 224 228 232 236 240 244 248 252 255]
   #define WATER_I 0.50 //[0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00]
-  #define WATER_OPACITY 0.50 //[0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00]
+  #define WATER_OPACITY 0.50 //[0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 0.99]
   #define WATER_FOG 64.0 //[2.0 3.0 4.0 6.0 8.0 12.0 16.0 24.0 32.0 48.0 64.0 96.0 128.0 160.0 192.0 224.0 256.0 512.0]
   #define WATER_V 0.0 //[0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0]
   #define UNDERWATER_R 0.33 //[0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10 0.11 0.12 0.13 0.14 0.15 0.16 0.17 0.18 0.19 0.20 0.21 0.22 0.23 0.24 0.25 0.26 0.27 0.28 0.29 0.30 0.31 0.32 0.33 0.34 0.35 0.36 0.37 0.38 0.39 0.40 0.41 0.42 0.43 0.44 0.45 0.46 0.47 0.48 0.49 0.50 0.51 0.52 0.53 0.54 0.55 0.56 0.57 0.58 0.59 0.60 0.61 0.62 0.63 0.64 0.65 0.66 0.67 0.68 0.69 0.70 0.71 0.72 0.73 0.74 0.75 0.76 0.77 0.78 0.79 0.80 0.81 0.82 0.83 0.84 0.85 0.86 0.87 0.88 0.89 0.90 0.91 0.92 0.93 0.94 0.95 0.96 0.97 0.98 0.99 1.00]
@@ -338,6 +348,7 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #define RAINBOW_AFTER_RAIN_CHECK
   #define ROUND_SUN_MOON
 //#define VANILLA_SKYBOX
+  #define SUN_MOON_HORIZON
   #define SKYBOX_BRIGHTNESS 2.00 //[0.01 0.02 0.03 0.05 0.07 0.10 0.15 0.20 0.25 0.35 0.40 0.45 0.50 0.60 0.75 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00 3.25 3.50 3.75 4.00]
   
   #define SKY_DAY 1.00 //[0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00 2.05 2.10 2.15 2.20 2.25 2.30 2.35 2.40 2.45 2.50 2.55 2.60 2.65 2.70 2.75 2.80 2.85 2.90 2.95 3.00 3.05 3.10 3.15 3.20 3.25 3.30 3.35 3.40 3.45 3.50 3.55 3.60 3.65 3.70 3.75 3.80 3.85 3.90 3.95 4.00 4.25 4.50 4.75 5.00 5.25 5.50 5.75 6.00 6.25 6.50 6.75 7.00 7.50 8.00 8.50 9.00 9.50 10.0 11.0 12.0 13.0 14.0 15.0 16.0 18.0 20.0 22.0 24.0 28.0 30.0 32.0]
@@ -426,7 +437,7 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
     #undef PARALLAX
     #undef SELF_SHADOW
     #undef DIRECTIONAL_LIGHTMAP
-    #if !defined GENERATED_NORMALS || !defined GBUFFERS_TERRAIN
+    #if !defined GENERATED_NORMALS
       #undef NORMAL_MAPPING
     #endif
   #else
@@ -440,11 +451,22 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
     #undef DIRECTIONAL_LIGHTMAP
   #endif
 
-  #if defined ENTITY_NORMAL_FIX && MC_VERSION >= 11500 && MC_VERSION < 11600 && (defined GBUFFERS_ENTITIES || defined GBUFFERS_HAND || defined GBUFFERS_BLOCK)
-    #undef NORMAL_MAPPING
-    #undef PARALLAX
-    #undef SELF_SHADOW
-    #undef DIRECTIONAL_LIGHTMAP
+  #if defined ENTITY_NORMAL_FIX && (defined GBUFFERS_ENTITIES || defined GBUFFERS_HAND || defined GBUFFERS_BLOCK)
+    #if MC_VERSION >= 11500 && MC_VERSION < 11600
+      #undef NOISY_TEXTURES
+      #undef GENERATED_NORMALS
+      #undef NORMAL_MAPPING
+      #undef PARALLAX
+      #undef SELF_SHADOW
+      #undef DIRECTIONAL_LIGHTMAP
+    #endif
+    #if MC_VERSION < 11802 || defined GBUFFERS_ENTITIES || defined GBUFFERS_HAND
+      #undef NOISY_TEXTURES
+      #undef GENERATED_NORMALS
+      #ifdef COMPBR
+        #undef NORMAL_MAPPING
+      #endif
+    #endif
   #endif
 
   #ifndef SHADOWS
@@ -561,6 +583,10 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #endif
   #ifdef ENTITY_SHADOWS
   #endif
+  #ifdef WATER_REFRACT
+  #endif
+  #ifdef BLOCKLIGHT_FLICKER
+  #endif
 
 //Very Common Variables//
 uniform int worldTime;
@@ -580,6 +606,8 @@ uniform int worldTime;
 #endif
 float timeBrightness = max(sin(timeAngle*6.28318530718),0.0);
 float moonBrightness = max(sin(timeAngle*(-6.28318530718)),0.0);
+
+vec3 darknessColor = vec3(0.0001, 0.0003, 0.0005);
 
 //Very Common Functions//
 int pow2(int number) {
@@ -638,4 +666,9 @@ float min2(vec2 vector) {
 
 float max2(vec2 vector) {
    return max(vector.x, vector.y);
+}
+
+bool CheckForColor(vec3 albedo, vec3 check) { // Thanks Builderb0y
+	vec3 dif = albedo - check / 255.0;
+	return dif == clamp(dif, vec3(-0.001), vec3(0.001));
 }

@@ -3,7 +3,7 @@ void GetMaterials(out float smoothness, out float metalness, out float f0, out f
                   vec2 newCoord, vec2 dcdx, vec2 dcdy) {
 	#ifdef MC_SPECULAR_MAP 
 		#ifdef WRONG_MIPMAP_FIX
-			vec4 specularMap = texture2DLod(specular, newCoord, 0.0);
+			vec4 specularMap = texture2DLod(specular, newCoord, 0);
 		#else
 			vec4 specularMap = texture2D(specular, newCoord);
 		#endif

@@ -1,18 +1,23 @@
+#if MC_VERSION >= 11900
+	uniform float darknessFactor;
+#endif
+
 #ifdef OVERWORLD
-
-#include "/lib/atmospherics/sunGlare.glsl"
-
+	#include "/lib/atmospherics/sunGlare.glsl"
 #endif
 
 vec3 Fog1(vec3 color, float lWorldPos, float lViewPos, vec3 nViewPos, vec3 extra, float NdotU) {
     #if defined OVERWORLD && !defined ONESEVEN && !defined TWO
 		#if FOG1_TYPE < 2
-			float fog = lWorldPos / far * (1.5/FOG1_DISTANCE_M);
+			float fog = lWorldPos / far * (1.0/FOG1_DISTANCE_M);
 		#else
-			float fog = lViewPos / far * (1.5/FOG1_DISTANCE_M);
+			float fog = lViewPos / far * (1.025/FOG1_DISTANCE_M);
 		#endif
 
-		fog = 1.0 - exp(-0.1 * pow(fog, 10.0));
+		fog *= fog;
+		fog *= fog;
+		fog *= fog * fog;
+		fog = 1.0 - exp(-6.0 * fog);
 
 		if (fog > 0.0) {
 			vec3 artificialFogColor = GetSkyColor(lightCol, NdotU, nViewPos, false);
@@ -96,7 +101,7 @@ vec3 Fog1(vec3 color, float lWorldPos, float lViewPos, vec3 nViewPos, vec3 extra
 		}
     #endif
 	
-	return vec3(color.rgb);
+	return color.rgb;
 }
 
 vec3 Fog2(vec3 color, float lViewPos, vec3 worldPos) {
@@ -163,7 +168,7 @@ vec3 Fog2(vec3 color, float lViewPos, vec3 worldPos) {
 		color.rgb = mix(color.rgb, fogColor2, fog2 * 0.80);
     #endif
 	
-	return vec3(color.rgb);
+	return color.rgb;
 }
 
 vec3 WaterFog(vec3 color, float lViewPos, float fogrange) {
@@ -172,7 +177,7 @@ vec3 WaterFog(vec3 color, float lViewPos, float fogrange) {
 	color *= pow(max(underwaterColor.rgb, vec3(0.1)), vec3(0.5)) * 3.0;
     color = mix(color, 0.8 * pow(underwaterColor.rgb * (1.0 - blindFactor), vec3(2.0)), fog);
 
-	return vec3(color.rgb);
+	return color.rgb;
 }
 
 vec3 LavaFog(vec3 color, float lViewPos) {
@@ -188,9 +193,15 @@ vec3 LavaFog(vec3 color, float lViewPos) {
 			if (gl_Fog.start / far < 0.0) fog = min(lViewPos * 0.01, 1.0);
 		#endif
 	#endif
-		
-	color.rgb = mix(color.rgb, vec3(0.6, 0.35, 0.15), fog); //duplicate 792763950
-	return vec3(color.rgb);
+	
+	//duplicate 792763950
+	#ifndef VANILLA_UNDERLAVA_COLOR
+		vec3 lavaFogColor = vec3(0.6, 0.35, 0.15);
+	#else
+		vec3 lavaFogColor = pow(fogColor, vec3(2.2));
+	#endif
+	color.rgb = mix(color.rgb, lavaFogColor, fog);
+	return color.rgb;
 }
 
 vec3 SnowFog(vec3 color, float lViewPos) {
@@ -198,7 +209,7 @@ vec3 SnowFog(vec3 color, float lViewPos) {
 	fog = (1.0 - exp(-4.0 * fog * fog * fog));
 	color.rgb = mix(color.rgb, vec3(0.1, 0.15, 0.2), fog);
 
-	return vec3(color.rgb);
+	return color.rgb;
 }
 
 vec3 BlindFog(vec3 color, float lViewPos) {
@@ -206,8 +217,18 @@ vec3 BlindFog(vec3 color, float lViewPos) {
 	fog = (1.0 - exp(-6.0 * fog * fog * fog)) * blindFactor;
 	color.rgb = mix(color.rgb, vec3(0.0), fog);
 	
-	return vec3(color.rgb);
+	return color.rgb;
 }
+
+#if MC_VERSION >= 11900
+	vec3 DarknessFog(vec3 color, float lViewPos) {
+		float fog = lViewPos * 0.06;
+		fog = (1.0 - exp(-6.0 * fog * fog * fog)) * darknessFactor;
+		color.rgb = mix(color.rgb, darknessColor, fog);
+		
+		return color.rgb;
+	}
+#endif
 
 vec3 startFog(vec3 color, vec3 nViewPos, float lViewPos, vec3 worldPos, vec3 extra, float NdotU) {
 	#if !defined GBUFFER_CODING
@@ -216,18 +237,21 @@ vec3 startFog(vec3 color, vec3 nViewPos, float lViewPos, vec3 worldPos, vec3 ext
 				color.rgb = Fog2(color.rgb, lViewPos, worldPos);
 			#endif
 			#ifdef FOG1
-				color.rgb = Fog1(color.rgb, length(worldPos.xz) * 1.025, lViewPos, nViewPos, extra, NdotU);
+				color.rgb = Fog1(color.rgb, length(worldPos.xz), lViewPos, nViewPos, extra, NdotU);
 			#endif
 		}
 	#endif
 	
-	if (blindFactor == 0.0) {
+	if (blindFactor < 0.001) {
 		if (isEyeInWater == 1) color.rgb = WaterFog(color.rgb, lViewPos, waterFog * (1.0 + eBS));
 		if (isEyeInWater == 2) color.rgb = LavaFog(color.rgb, lViewPos);
 		#if MC_VERSION >= 11700
 			if (isEyeInWater == 3) color.rgb = SnowFog(color.rgb, lViewPos);
 		#endif
-	} else if (blindFactor > 0.0) color.rgb = BlindFog(color.rgb, lViewPos);
+	} else color.rgb = BlindFog(color.rgb, lViewPos);
+	#if MC_VERSION >= 11900
+		if (darknessFactor > 0.001) color.rgb = DarknessFog(color.rgb, lViewPos);
+	#endif
 	
-	return vec3(color.rgb);
+	return color.rgb;
 }

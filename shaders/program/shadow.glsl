@@ -93,9 +93,9 @@ void main() {
 
 	#ifdef WRONG_MIPMAP_FIX
 		#if !defined COLORED_SHADOWS || !defined OVERWORLD
-  			albedo.a = texture2DLod(tex, texCoord.xy, 0.0).a;
+  			albedo.a = texture2DLod(tex, texCoord.xy, 0).a;
 		#else
-  			albedo = texture2DLod(tex, texCoord.xy, 0.0);
+  			albedo = texture2DLod(tex, texCoord.xy, 0);
 		#endif
 	#else
 		#if !defined COLORED_SHADOWS || !defined OVERWORLD
@@ -158,17 +158,17 @@ void main() {
 #ifdef VSH
 
 //Uniforms//
-#if WORLD_TIME_ANIMATION >= 2
-#else
-uniform float frameTimeCounter;
-#endif
-
+uniform float rainStrengthS;
 
 uniform vec3 cameraPosition;
 
 uniform mat4 shadowProjection, shadowProjectionInverse;
 uniform mat4 shadowModelView, shadowModelViewInverse;
 uniform mat4 gbufferModelView;
+
+#if WORLD_TIME_ANIMATION < 2
+	uniform float frameTimeCounter;
+#endif
 
 //Attributes//
 attribute vec4 mc_Entity;
@@ -205,7 +205,7 @@ void main() {
 	if (mc_Entity.x == 7979) mat = 3; //ice
 	if (mc_Entity.x == 8) {  //water
 		#ifdef WATER_DISPLACEMENT
-			position.y += WavingWater(position.xyz);
+			position.y += WavingWater(position.xyz, lmCoord.y);
 		#endif
 		mat = 2;
 	}
@@ -225,7 +225,7 @@ void main() {
 	if (mc_Entity.x ==  31 || mc_Entity.x ==   6 || mc_Entity.x ==  59 || 
 		mc_Entity.x == 175 || mc_Entity.x == 176 || mc_Entity.x ==  83 || 
 		mc_Entity.x == 104 || mc_Entity.x == 105 || mc_Entity.x == 11019) { // Foliage
-		#ifndef NO_FOLIAGE_SHADOWS
+		#if !defined NO_FOLIAGE_SHADOWS && SHADOW_SUBSURFACE > 0
 			// Counter Shadow Bias
 			#ifdef OVERWORLD
 				float timeAngleM = timeAngle;

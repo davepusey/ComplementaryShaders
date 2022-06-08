@@ -42,17 +42,17 @@ uniform sampler2D texture;
 #endif
 
 #ifdef END
-uniform float frameTimeCounter;
+	uniform float frameTimeCounter;
 
-uniform vec3 cameraPosition;
+	uniform vec3 cameraPosition;
 
-uniform mat4 gbufferModelViewInverse;
+	uniform mat4 gbufferModelViewInverse;
 
-uniform sampler2D noisetex;
+	uniform sampler2D noisetex;
 #endif
 
-#if MC_VERSION >= 11700 && defined OVERWORLD && defined VANILLA_SKYBOX
-uniform int renderStage;
+#if MC_VERSION >= 11700 && defined OVERWORLD && defined VANILLA_SKYBOX && defined SUN_MOON_HORIZON
+	uniform int renderStage;
 #endif
 
 //Common Variables//
@@ -67,10 +67,10 @@ float vsBrightness = clamp(screenBrightness, 0.0, 1.0);
 
 //Includes//
 #if defined OVERWORLD && defined VANILLA_SKYBOX
-#include "/lib/color/lightColor.glsl"
+	#include "/lib/color/lightColor.glsl"
 #endif
 #ifdef END
-#include "/lib/color/endColor.glsl"
+	#include "/lib/color/endColor.glsl"
 #endif
 
 //Program//
@@ -82,12 +82,15 @@ void main() {
 		vec4 viewPos = gbufferProjectionInverse * (screenPos * 2.0 - 1.0);
 		viewPos /= viewPos.w;
 		vec3 nViewPos = normalize(viewPos.xyz);
-		float NdotU = dot(nViewPos, upVec);
 
-		#if MC_VERSION >= 11700
-			if (renderStage > 3)
+		#ifdef SUN_MOON_HORIZON
+			float NdotU = dot(nViewPos, upVec);
+
+			#if MC_VERSION >= 11700
+				if (renderStage > 3)
+			#endif
+			albedo.a *= clamp((NdotU+0.02)*10, 0.0, 1.0);
 		#endif
-		albedo.a *= clamp((NdotU+0.02)*10, 0.0, 1.0);
 		
 		albedo *= color;
 		albedo.rgb = pow(albedo.rgb, vec3(2.2 + sunVisibility * 2.2)) * (1.0 + sunVisibility * 4.0) * SKYBOX_BRIGHTNESS * albedo.a;

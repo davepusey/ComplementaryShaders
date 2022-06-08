@@ -38,6 +38,10 @@ uniform sampler2D colortex1;
 	uniform float nightVision;
 #endif
 
+#if MC_VERSION >= 11900
+	uniform float darknessFactor;
+#endif
+
 //Optifine Constants//
 #if !(LIGHT_SHAFT_QUALITY == 3)
 	const bool colortex1MipmapEnabled = true;
@@ -105,6 +109,9 @@ void main() {
 		vec3 vl = vlSum;
 
 		vl *= vl;
+	#endif
+	#if MC_VERSION >= 11900
+		vl *= 1.0 - darknessFactor;
 	#endif
 	vec3 vlP = vl;
 

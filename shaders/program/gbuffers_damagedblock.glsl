@@ -40,23 +40,23 @@ void main() {
 
 //Uniforms//
 #if AA == 2 || AA == 3
-uniform int frameCounter;
+	uniform int frameCounter;
 
-uniform float viewWidth;
-uniform float viewHeight;
-#include "/lib/util/jitter.glsl"
+	uniform float viewWidth;
+	uniform float viewHeight;
+	#include "/lib/util/jitter.glsl"
 #endif
 #if AA == 4
-uniform int frameCounter;
+	uniform int frameCounter;
 
-uniform float viewWidth;
-uniform float viewHeight;
-#include "/lib/util/jitter2.glsl"
+	uniform float viewWidth;
+	uniform float viewHeight;
+	#include "/lib/util/jitter2.glsl"
 #endif
 
 #ifdef WORLD_CURVATURE
-uniform mat4 gbufferModelView;
-uniform mat4 gbufferModelViewInverse;
+	uniform mat4 gbufferModelView;
+	uniform mat4 gbufferModelViewInverse;
 #endif
 
 //Includes//
@@ -69,15 +69,15 @@ void main() {
 	texCoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 
 	#ifdef WORLD_CURVATURE
-	vec4 position = gbufferModelViewInverse * gl_ModelViewMatrix * gl_Vertex;
-	position.y -= WorldCurvature(position.xz);
-	gl_Position = gl_ProjectionMatrix * gbufferModelView * position;
+		vec4 position = gbufferModelViewInverse * gl_ModelViewMatrix * gl_Vertex;
+		position.y -= WorldCurvature(position.xz);
+		gl_Position = gl_ProjectionMatrix * gbufferModelView * position;
 	#else
-	gl_Position = ftransform();
+		gl_Position = ftransform();
 	#endif
 	
 	#if AA > 1
-	gl_Position.xy = TAAJitter(gl_Position.xy, gl_Position.w);
+		gl_Position.xy = TAAJitter(gl_Position.xy, gl_Position.w);
 	#endif
 }
 

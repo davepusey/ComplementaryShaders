@@ -55,25 +55,38 @@ vec3 SampleFilteredShadow(vec3 shadowPos, float offset, inout float water) {
     return shadow * 0.1;
 }
 
-vec3 SampleTAAFilteredShadow(vec3 shadowPos, float offset, inout float water) {
+float InterleavedGradientNoise() {
+	float n = 52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y);
+	return fract(n + frameCounter / 8.0);
+}
+
+vec3 SampleTAAFilteredShadow(vec3 shadowPos, float offset, inout float water, int doSubsurface) {
     float noise = InterleavedGradientNoise();
     vec3 shadow = vec3(0.0);
     offset = offset * (2.0 - 0.5 * (0.85 + 0.25 * (3072.0 / shadowMapResolution)));
     if (shadowMapResolution < 400.0) offset *= 30.0;
 
-    for(int i = 0; i < 2; i++) {
-        vec2 offset = offsetDist(noise + i, 2.0) * offset;
+    #if SHADOW_SUBSURFACE < 3
+        int sampleCount = 2;
+    #else
+        int sampleCount = 2 + doSubsurface;
+    #endif
+
+    for(int i = 0; i < sampleCount; i++) {
+        vec2 offset = offsetDist(noise + i, sampleCount) * offset;
         shadow += SampleBasicShadow(vec3(shadowPos.st + offset, shadowPos.z), water);
         shadow += SampleBasicShadow(vec3(shadowPos.st - offset, shadowPos.z), water);
     }
     
-    return shadow * 0.25;
+    shadow /= sampleCount * 2;
+
+    return shadow;
 }
 
-vec3 GetShadow(vec3 shadowPos, float offset, inout float water) {
+vec3 GetShadow(vec3 shadowPos, float offset, inout float water, int doSubsurface) {
     #ifdef SHADOW_FILTER
         #if AA > 1
-            vec3 shadow = SampleTAAFilteredShadow(shadowPos, offset, water);
+            vec3 shadow = SampleTAAFilteredShadow(shadowPos, offset, water, doSubsurface);
         #else
             vec3 shadow = SampleFilteredShadow(shadowPos, offset, water);
         #endif

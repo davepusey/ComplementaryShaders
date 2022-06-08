@@ -12,14 +12,14 @@ vec4 RoughReflection(vec3 viewPos, vec3 normal, float dither, float smoothness) 
 			float lod = 0.0;
 		#endif
 
-		float check = float(texture2DLod(depthtex0, pos.st, 0.0).r < 1.0 - 1e-5);
+		float check = float(texture2DLod(depthtex0, pos.st, 0).r < 1.0 - 1e-5);
 		if (lod < 1.0) {
 			color.a = check;
-			if (color.a > 0.1) color.rgb = texture2DLod(colortex0, pos.st, 0.0).rgb;
+			if (color.a > 0.1) color.rgb = texture2DLod(colortex0, pos.st, 0).rgb;
 		} else {
 			float alpha = check;
 			if (alpha > 0.1) {
-				color.rgb += texture2DLod(colortex0, pos.st, max(lod - 1.0, 0.0)).rgb;
+				color.rgb += texture2DLod(colortex0, pos.st, max(lod - 1.0, 0)).rgb;
 				color.a += alpha;
 			}
 		}

@@ -44,16 +44,20 @@ uniform mat4 gbufferProjectionInverse;
 uniform sampler2D noisetex;
 
 #ifdef GALAXIES
-uniform sampler2D gaux4;
+	uniform sampler2D gaux4;
 #endif
 
 #ifdef AURORA
-uniform float isDry, isRainy, isSnowy;
+	uniform float isDry, isRainy, isSnowy;
+#endif
+
+#if MC_VERSION >= 11900
+	uniform float darknessFactor;
 #endif
 
 //Common Variables//
 #if WORLD_TIME_ANIMATION >= 1
-	float modifiedWorldDay = mod(worldDay, 100.0) + 5.0;
+	int modifiedWorldDay = int(mod(worldDay, 100.0) + 5.0);
 	float frametime = (worldTime + modifiedWorldDay * 24000) * 0.05 * ANIMATION_SPEED;
 #else
 	float frametime = frameTimeCounter * ANIMATION_SPEED;
@@ -90,10 +94,14 @@ vec3 RoundSunMoon(vec3 nViewPos, vec3 sunColor, vec3 moonColor, float NdotU, flo
 		}
 	}
 
-	float horizonFactor = clamp((NdotU+0.0025)*20, 0.0, 1.0);
-	sun *= horizonFactor;
+	#ifdef SUN_MOON_HORIZON
+		float horizonFactor = clamp((NdotU+0.0025)*20, 0.0, 1.0);
+		sun *= horizonFactor;
+		moonColor *= 1.0 - sunVisibility;
+		sunColor *= sunVisibility;
+	#endif
 
-	vec3 sunMoonCol = mix(moonColor * (1.0 - sunVisibility), sunColor * sunVisibility, float(cosS > 0.0));
+	vec3 sunMoonCol = mix(moonColor, sunColor, float(cosS > 0.0));
 
 	vec3 finalSunMoon = sun * sunMoonCol * 32.0;
 	finalSunMoon = pow(finalSunMoon, vec3(2.0 - min(finalSunMoon.r + finalSunMoon.g + finalSunMoon.b, 1.0)));
@@ -152,7 +160,7 @@ vec3 GetGalaxy(vec3 viewPos, float NdotU, float cosS, vec3 lightNight) {
 	float starDeletionTime = 1.0 - min(timeBrightness * 16.0, 1.0) * 0.15 - sunVisibility * 0.85;
 	float starNdotU = pow2(pow2(clamp(NdotU * 3.0, 0.0, 1.0)));
 	float starFactor = starNdotU * starDeletionTime;
-	star *= starFactor * 32.0 * clamp((eyeAltitude-1.0), 0.0, 1.0) * STAR_BRIGHTNESS;
+	star *= starFactor * 32.0 * (1.0 - isEyeInCave) * STAR_BRIGHTNESS;
 
 	vec3 starColor = lightNight * lightNight * 30.0;
 	vec3 starImage = starColor * star;
@@ -188,12 +196,6 @@ vec3 GetGalaxy(vec3 viewPos, float NdotU, float cosS, vec3 lightNight) {
 	result *= pow2(pow2(1.0 - max(rainStrength, rainStrengthS)));
 
 	return result;
-}
-
-float GetCoordDistance(vec2 coord1, vec2 coord2) {
-	float dis = sqrt(pow2(coord1.x - coord2.x) + pow2(coord1.y - coord2.y));
-	float disM = min(dis * 10.0, 1.0);
-	return disM;
 }
 
 //Includes//
@@ -252,32 +254,9 @@ void main() {
 			
 			vec3 roundSunMoon = RoundSunMoon(nViewPos, sunColor, moonColor, NdotU, cosS);
 
-			// My first test of textured moon. I don't like the result.
-			/*if (cosS < -0.9983) {
-				vec3 wpos = vec3(gbufferModelViewInverse * vec4(viewPos.xyz * 70.0, 1.0));
-				vec3 planeCoord = wpos / (wpos.y + length(wpos.xz) * 1.0);
-
-				vec3 moonPos = vec3(gbufferModelViewInverse * vec4(- sunVec * 70.0, 1.0));
-				vec3 moonCoord = moonPos / (moonPos.y + length(moonPos.xz));
-				vec2 wind = vec2(frametime, 0.0);
-				vec2 skyCoord = planeCoord.xz - moonCoord.xz;
-				skyCoord *= 0.35;
-				float moonNoise = GetCoordDistance(planeCoord.xz, moonCoord.xz + vec2( 0.010, 0.020));
-				for (int i = 1; i < 100; i++) {
-					vec2 coordAdd = (texture2D(noisetex, vec2(i * 1.77)).rg - 0.5) * vec2(0.060);
-					moonNoise = min(moonNoise, GetCoordDistance(planeCoord.xz, moonCoord.xz + coordAdd));
-				}
-				moonNoise = 0.22 - pow(dot2(roundSunMoon), 0.1) * 0.1 +
-							pow(max(moonNoise, 0.0), pow(dot2(roundSunMoon), 0.17) * 0.7);
-
-				float noNoise = min(max(cosS + 0.9988, 0.0) / 0.0005, 1.0);
-				moonNoise = mix(moonNoise, 1.0, pow2(noNoise*noNoise));
-				roundSunMoon *= moonNoise * 1.3;
-			}*/
-
 			#ifdef CLOUDS
 				roundSunMoon *= pow2(pow2(pow2(pow2(pow2(1.0 - cloudMaskR * cloudMaskR * rainStrengthS)))));
-				// This should still be faster than pow()
+				//This should still be faster than pow()
 
 				roundSunMoon *= pow2(1.0 - rainStrengthS);
 			#else
@@ -313,8 +292,8 @@ void main() {
 		#else
 			float alpha = 1.0 - vanillaStars * sunVisibility;
 		#endif
-		float starNdotU = clamp(NdotU * 3.0, 0.0, 1.0);
-		alpha = max(alpha - vanillaStars * (1.0 - starNdotU), 0.0);
+		float vanillaStarsM = vanillaStars * (1.0 - clamp(NdotU * 3.0, 0.0, 1.0));
+		alpha = max(alpha - vanillaStarsM, 0.0);
 	#endif
 
 	#if MC_VERSION >= 11700
@@ -323,6 +302,10 @@ void main() {
 
 	#if defined CAVE_SKY_FIX && defined OVERWORLD
 		albedo.rgb *= 1.0 - isEyeInCave;
+	#endif
+
+	#if MC_VERSION >= 11900
+		if (darknessFactor > 0.001) albedo.rgb = mix(albedo.rgb, darknessColor, darknessFactor);
 	#endif
 
     /* DRAWBUFFERS:0 */

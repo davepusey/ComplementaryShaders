@@ -55,6 +55,10 @@ uniform mat4 shadowModelView;
 	uniform int renderStage;
 #endif
 
+#if MC_VERSION >= 11900
+	uniform float darknessLightFactor;
+#endif
+
 //Common Variables//
 float eBS = eyeBrightnessSmooth.y / 240.0;
 float sunVisibility = clamp(dot( sunVec,upVec) + 0.0625, 0.0, 0.125) * 8.0;
@@ -75,11 +79,6 @@ float vsBrightness = clamp(screenBrightness, 0.0, 1.0);
 //Common Functions//
 float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
-}
-
-float InterleavedGradientNoise() {
-	float n = 52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y);
-	return fract(n + frameCounter / 8.0);
 }
  
 //Includes//
@@ -162,7 +161,7 @@ void main() {
 				float posFactor = worldPos.x + worldPos.y + worldPos.z + cameraPosition.x + cameraPosition.y + cameraPosition.z;
 				albedo.rgb = clamp(abs(mod(fract(frameTimeCounter*0.25 + posFactor*0.1) * 6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0)-1.0,
 							0.0, 1.0);
-				albedo.rgb = pow(albedo.rgb, vec3(2.2)) * SELECTION_I * 0.5;
+				albedo.rgb = pow(albedo.rgb, vec3(2.2)) * SELECTION_I * SELECTION_I * 0.5;
 			#endif
 			#if SELECTION_MODE == 3 // Disabled
 				albedo.a = 0.0;
@@ -193,7 +192,6 @@ void main() {
 #ifdef VSH
 
 //Uniforms//
-
 uniform float frameTimeCounter;
 uniform float viewWidth, viewHeight;
 

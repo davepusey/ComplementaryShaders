@@ -30,7 +30,7 @@ uniform int worldDay;
 uniform int moonPhase;
 #define UNIFORM_moonPhase
 
-#if defined DYNAMIC_SHADER_LIGHT || SHOW_LIGHT_LEVELS == 1 || SHOW_LIGHT_LEVELS == 1
+#if defined DYNAMIC_SHADER_LIGHT || SHOW_LIGHT_LEVELS == 1 || SHOW_LIGHT_LEVELS == 3
 	uniform int heldItemId, heldItemId2;
 
 	uniform int heldBlockLightValue;
@@ -39,7 +39,8 @@ uniform int moonPhase;
 
 uniform float frameTimeCounter;
 uniform float isEyeInCave;
-uniform float blindFactor, nightVision;
+uniform float blindFactor;
+uniform float nightVision;
 uniform float far, near;
 uniform float rainStrengthS;
 uniform float screenBrightness; 
@@ -63,15 +64,19 @@ uniform sampler2D depthtex1;
 uniform sampler2D noisetex;
 
 #if defined ADV_MAT && defined NORMAL_MAPPING && !defined COMPBR
-uniform sampler2D normals;
+	uniform sampler2D normals;
 #endif
 
 #ifdef AURORA
-uniform float isDry, isRainy, isSnowy;
+	uniform float isDry, isRainy, isSnowy;
 #endif
 
 #ifdef COLORED_LIGHT
-uniform sampler2D colortex9;
+	uniform sampler2D colortex9;
+#endif
+
+#if MC_VERSION >= 11900
+	uniform float darknessLightFactor;
 #endif
 
 //Optifine Constants//
@@ -82,12 +87,12 @@ float sunVisibility = clamp(dot( sunVec,upVec) + 0.0625, 0.0, 0.125) * 8.0;
 float vsBrightness = clamp(screenBrightness, 0.0, 1.0);
 
 #if WORLD_TIME_ANIMATION == 2
-float modifiedWorldDay = mod(worldDay, 100.0) + 5.0;
+int modifiedWorldDay = int(mod(worldDay, 100.0) + 5.0);
 float frametime = (worldTime + modifiedWorldDay * 24000) * 0.05 * ANIMATION_SPEED;
 float cloudtime = frametime;
 #endif
 #if WORLD_TIME_ANIMATION == 1
-float modifiedWorldDay = mod(worldDay, 100.0) + 5.0;
+int modifiedWorldDay = int(mod(worldDay, 100.0) + 5.0);
 float frametime = frameTimeCounter * ANIMATION_SPEED;
 float cloudtime = (worldTime + modifiedWorldDay * 24000) * 0.05 * ANIMATION_SPEED;
 #endif
@@ -116,11 +121,6 @@ float waterBump = WATER_BUMP * 0.20;
 //Common Functions//
 float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
-}
-
-float InterleavedGradientNoise() {
-	float n = 52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y);
-	return fract(n + frameCounter / 8.0);
 }
  
 float GetWaterHeightMap(vec3 worldPos, vec3 nViewPos) {
@@ -287,6 +287,8 @@ void main() {
 		vec3 nViewPos = normalize(viewPos.xyz);
 		float NdotU = dot(nViewPos, upVec);
 
+		float dither = Bayer64(gl_FragCoord.xy);
+
 		vec3 normalMap = vec3(0.0, 0.0, 1.0);
 		
 		mat3 tbnMatrix = mat3(tangent.x, binormal.x, normal.x,
@@ -336,21 +338,29 @@ void main() {
 		#if defined COMPBR && FANCY_NETHER_PORTAL > 0
 			if (netherPortal > 0.5) {
 				lightmap = vec2(0.0);
+				#if AA > 1
+					dither = fract(dither + frameTimeCounter * 16.0);
+					int sampleCount = 24;
+				#else
+					int sampleCount = 48;
+				#endif
 
-				int sampleCount = 32;
-				float multiplier = 0.0625 / (-viewVector.z * sampleCount);
+				float multiplier = 2.0 / (-viewVector.z * sampleCount);
 				vec2 interval = viewVector.xy * multiplier;
 				vec2 coord = vTexCoord.st;
 
-				vec4 albedoC = albedo;
+				vec4 albedoC = vec4(0.0);
+				albedo *= 0.0;
 				for (int i = 1; i <= sampleCount; i++) {
-					coord += interval;
-					vec4 psample = texture2DLod(texture, fract(coord) * vTexCoordAM.pq + vTexCoordAM.st, 0.0);
+					float portalStep = (i - 1.0 + dither) / sampleCount;
+					coord += interval * portalStep;
+					vec4 psample = texture2DLod(texture, fract(coord) * vTexCoordAM.pq + vTexCoordAM.st, 0);
+					psample *= sqrt(1.0 - portalStep);
 
 					albedoC = max(albedoC, psample);
 
-					psample.r *= 1.5;
-					psample.a = sqrt2(psample.a) * 0.75;
+					psample.rb *= vec2(1.5, 0.92);
+					psample.a = sqrt2(psample.a) * 0.925;
 
 					albedo += psample;
 				}
@@ -359,7 +369,7 @@ void main() {
 				emissive = albedoC.r * albedoC.r;
 				emissive *= emissive;
 				emissive *= emissive;
-				emissive = clamp(emissive * 12.0, 0.004, 0.1);
+				emissive = clamp(emissive * 120.0, 0.03, 1.2);
 
 				#if FANCY_NETHER_PORTAL > 1
 					vec2 portalCoord = abs(vTexCoord.xy - 0.5);
@@ -367,7 +377,8 @@ void main() {
 					float noise = texture2D(noisetex, portalCoord).r;
 					noise *= noise;
 					noise *= noise;
-					emissive *= noise * 16.0;
+					emissive *= noise * 12.0;
+					emissive += 0.01;
 				#endif
 			}
 		#endif
@@ -463,7 +474,7 @@ void main() {
 		float materialAO = 1.0;
 
 		float subsurface = 0.0;
-		#if SHADOW_SUBSURFACE == 2
+		#if SHADOW_SUBSURFACE > 0
 			if (translucent > 0.5 && ice < 0.5) {
 				subsurface = 1.0 - albedo.a;
 			}
@@ -473,8 +484,6 @@ void main() {
 		vec3 lightAlbedo = vec3(0.0);
 		GetLighting(albedo.rgb, shadow, lightAlbedo, viewPos, lViewPos, worldPos, lightmap, color.a, NdotL, quarterNdotU,
 				    parallaxShadow, emissive, subsurface, 0.0, materialAO);
-		
-		float dither = Bayer64(gl_FragCoord.xy);
 
 		#ifdef WATER_ABSORPTION
 			if (water > 0.5 && isEyeInWater == 0) {
@@ -576,7 +585,7 @@ void main() {
 						#if defined CLOUDS || defined AURORA
 							float cosT = dot(normalize(skyReflectionPos), upVec);
 							#ifdef AURORA
-								skyReflection += skyLightFactor * DrawAurora(skyReflectionPos, dither, 4, cosT);
+								skyReflection += skyLightFactor * DrawAurora(skyReflectionPos, dither, 8, cosT);
 							#endif
 							float cloudFactor = 1.0;
 							#ifdef CLOUDS
@@ -675,17 +684,17 @@ void main() {
 #ifdef VSH
 
 //Uniforms//
-
 uniform float frameTimeCounter;
+uniform float rainStrengthS;
 
 uniform vec3 cameraPosition;
 
 uniform mat4 gbufferModelView, gbufferModelViewInverse;
 
 #if AA > 1
-uniform int frameCounter;
+	uniform int frameCounter;
 
-uniform float viewWidth, viewHeight;
+	uniform float viewWidth, viewHeight;
 #endif
 
 //Attributes//
@@ -777,7 +786,7 @@ void main() {
 			lmCoord.x *= 0.6;
 		#endif
 		#ifdef WATER_DISPLACEMENT
-			position.y += WavingWater(position.xyz);
+			position.y += WavingWater(position.xyz, lmCoord.y);
 		#endif
 		mat = 1.0;
 	}
@@ -786,7 +795,7 @@ void main() {
 	}
 	if (mc_Entity.x == 889) { // Modded Fluid With Water Waves And No Texture
 		#ifdef WATER_DISPLACEMENT
-			position.y += WavingWater(position.xyz);
+			position.y += WavingWater(position.xyz, lmCoord.y);
 		#endif
 		mat = 5.0;
 	}

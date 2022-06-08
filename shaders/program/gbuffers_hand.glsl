@@ -6,8 +6,6 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
 #include "/lib/common.glsl"
 
 //Varyings//
-varying float isMainHand;
-
 varying vec2 texCoord, lmCoord;
 
 varying vec3 normal;
@@ -65,16 +63,20 @@ uniform sampler2D texture;
 #endif
 
 #if ((defined WATER_CAUSTICS || defined CLOUD_SHADOW) && defined OVERWORLD) || defined RANDOM_BLOCKLIGHT
-uniform sampler2D noisetex;
+	uniform sampler2D noisetex;
 #endif
 
 #if defined ADV_MAT && !defined COMPBR
-uniform sampler2D specular;
-uniform sampler2D normals;
+	uniform sampler2D specular;
+	uniform sampler2D normals;
 #endif
 
 #ifdef COLORED_LIGHT
-uniform sampler2D colortex9;
+	uniform sampler2D colortex9;
+#endif
+
+#if MC_VERSION >= 11900
+	uniform float darknessLightFactor;
 #endif
 
 //Common Variables//
@@ -102,11 +104,6 @@ float vsBrightness = clamp(screenBrightness, 0.0, 1.0);
 //Common Functions//
 float GetLuminance(vec3 color) {
 	return dot(color,vec3(0.299, 0.587, 0.114));
-}
-
-float InterleavedGradientNoise() {
-	float n = 52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y);
-	return fract(n + frameCounter / 8.0);
 }
 
 //Includes//
@@ -153,9 +150,9 @@ void main() {
 		#endif
 		
 		#if defined PARALLAX || defined SELF_SHADOW
-			float skipParallax = float(heldItemId == 358 || (heldItemId2 == 358 && isMainHand < 0.5));
+			float skipParallax = float(heldItemId == 358 || heldItemId2 == 358);
 			#ifdef COMPATIBILITY_MODE
-				skipParallax += float(heldItemId > 2000 || (heldItemId2 > 2000 && isMainHand < 0.5));
+				skipParallax += float(heldItemId > 2000 || heldItemId2 > 2000);
 			#endif
 			float parallaxDepth = 1.0;
 		#endif
@@ -185,10 +182,10 @@ void main() {
 		vec3 viewPos = ScreenToView(screenPos);
 		vec3 worldPos = ViewToWorld(viewPos);
 
-		float ao = 1.0;
+		float materialAO = 1.0;
 		#ifdef ADV_MAT
 			#ifndef COMPBR
-				GetMaterials(smoothness, metalness, f0, metalData, emissive, ao, normalMap, newCoord, dcdx, dcdy);
+				GetMaterials(smoothness, metalness, f0, metalData, emissive, materialAO, normalMap, newCoord, dcdx, dcdy);
 			#endif
 
 			#ifdef NORMAL_MAPPING
@@ -213,17 +210,16 @@ void main() {
 			  quarterNdotU*= quarterNdotU;
 
 		float parallaxShadow = 1.0;
-		float materialAO = 1.0;
 		#ifdef ADV_MAT
 			rawAlbedo = albedo.rgb * 0.999 + 0.001;
-			#ifdef COMPBR
-				albedo.rgb *= ao;
-				if (metalness > 0.80) {
+			#ifdef REFLECTION_SPECULAR
+				#ifdef COMPBR
+					if (metalness > 0.80) {
+						albedo.rgb *= (1.0 - metalness*0.65);
+					}
+				#else
 					albedo.rgb *= (1.0 - metalness*0.65);
-				}
-			#else
-				materialAO = ao;
-				albedo.rgb *= (1.0 - metalness*0.65);
+				#endif
 			#endif
 
 			float doParallax = 0.0;
@@ -393,8 +389,6 @@ void main() {
 	#endif
 	
 	color = gl_Color;
-
-	isMainHand = float(gl_ModelViewMatrix[3][0] > 0.0);
 	
 	const vec2 sunRotationData = vec2(cos(sunPathRotation * 0.01745329251994), -sin(sunPathRotation * 0.01745329251994));
 	float ang = fract(timeAngleM - 0.25);
@@ -416,8 +410,12 @@ void main() {
 		gl_Position.y += HAND_SWAY * (cos(frametime * 1.5)) / 64.0;
 	}
 
+	#if DOF == 1
+		//gl_Position.x += pow2(1.0 - (gl_Position.x + 1.0) * 0.5);
+	#endif
+
 	#ifdef OVERDRAW
-		gl_Position.xy *= 2.0 / 3.0;
+		gl_Position.xy *= 0.6666666666666;
 	#endif
 }
 
