@@ -254,7 +254,7 @@ void GetLighting(inout vec3 albedo, inout vec3 shadow, inout vec3 lightAlbedo, v
 			#endif
 		
 			#if MC_VERSION >= 11600
-				vec3 sceneLighting = normalize(sqrt(fogColor)) * 0.0385 * NETHER_I * (vsBrightness*0.5 + 0.6);
+				vec3 sceneLighting = normalize(sqrt(max(fogColor, vec3(0.001)))) * 0.0385 * NETHER_I * (vsBrightness*0.5 + 0.6);
 			#else
 				vec3 sceneLighting = normalize(netherCol) * 0.0385 * NETHER_I * (vsBrightness*0.5 + 0.6);
 			#endif

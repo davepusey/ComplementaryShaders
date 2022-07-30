@@ -10,7 +10,7 @@ if (mc_Entity.x ==  31 || mc_Entity.x ==   6 || mc_Entity.x ==  59 ||
         mat = 1.0,
     #endif
     lmCoord.x = clamp(lmCoord.x, 0.0, 0.87), quarterNdotUfactor = 0.0;
-    
+   
 if (mc_Entity.x == 18 || mc_Entity.x == 9600 || mc_Entity.x == 9100) // Leaves, Vine, Lily Pad
     #ifdef COMPBR
         specR = 12.065, specG = 0.003,
@@ -289,7 +289,7 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
             }
         }
     } else {
-        if (mc_Entity.x < 11036.5) {
+        if (mc_Entity.x < 11038.5) {
             if (mc_Entity.x < 10432.5) {
                 if (mc_Entity.x < 10408.5) {
                     if (mc_Entity.x < 10392.5) {
@@ -305,7 +305,7 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                             specB = 5.0001, specR = 5.07,
                             mipmapDisabling = 1.0, lmCoord.x = clamp(lmCoord.x, 0.0, 0.87);
                     } else {
-                        if (mc_Entity.x == 10396) // End Stone++, Smooth Stone+, Lodestone, TNT, Pumpkin+, Mushroom Blocks, Deepslate++
+                        if (mc_Entity.x == 10396) // End Stone++, Smooth Stone+, Lodestone, TNT, Pumpkin+, Mushroom Blocks, Deepslate++, Mud, Mangrove Roots, Muddy Mangrove Roots, Packed Mud, Mud Bricks+
                             #ifdef NOISY_TEXTURES
                                 noiseVarying = 0.5,
                             #endif
@@ -437,6 +437,8 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                                 lightVarying = 4.0,
                             #endif
                             specR = 1.0, lmCoord.x = 0.88, mat = 180.0;
+                        else if (mc_Entity.x == 11038) // Froglight+
+                            lmCoord.x = 0.7, specB = 7.0001, quarterNdotUfactor = 0.0;
                     }
                 }
             }
@@ -517,7 +519,7 @@ if (lmCoord.x > 0.99) // Clamp full bright emissives
                         else if (mc_Entity.x == 11078) { // Glow Lichen
                             #if EMISSIVE_LICHEN > 0
                                 #if EMISSIVE_LICHEN == 1
-                                    float lightFactor = max(1.0 - lmCoord.y, 0.0) * (max(0.533 - max(lmCoord.x - 0.467, 0.0), 0.0) / 0.533);
+                                    float lightFactor = max(1.0 - lmCoord.y, 0.0);
                                           lightFactor *= lightFactor;
                                           lightFactor *= lightFactor;
                                           lightFactor *= lightFactor;

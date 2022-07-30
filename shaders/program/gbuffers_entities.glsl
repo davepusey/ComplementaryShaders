@@ -282,7 +282,12 @@ void main() {
 			}
 			}
 			} else {
-				
+				if (entityId == 10214) { // Allay
+                    if (atlasSize.x < 900) {
+                        lightmap = vec2(0.0);
+                        emissive = float(albedo.r > 0.9) * 0.7 + 0.02;
+                    }
+				}
 			}
 			}
 			#endif
@@ -536,7 +541,7 @@ void main() {
     #endif
 
 	#ifdef FLICKERING_FIX
-		if (entityId == 18) {
+		if (entityId == 18) { // Item Frame, Painting, Glow Item Frame
 			if (dot(normal, upVec) > 0.99) {
 				vec4 position = gbufferModelViewInverse * gl_ModelViewMatrix * gl_Vertex;
 				vec3 comPos = fract(position.xyz + cameraPosition);
@@ -545,6 +550,8 @@ void main() {
 					gl_Position.z += 0.0001;
 				}
 			}
+		} else if (entityId == 19) { // Frog
+			gl_Position.z -= 0.0001;
 		}
 	#endif
 

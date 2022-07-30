@@ -188,7 +188,7 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #define TONEMAP_LOWER_CURVE 1.20 //[0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00]
   #define TONEMAP_UPPER_CURVE 1.20 //[0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00]
   #define SATURATION 1.00 //[0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00]
-  #define VIBRANCE 1.20 //[0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00]
+  #define VIBRANCE 1.15 //[0.00 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1.00 1.05 1.10 1.15 1.20 1.25 1.30 1.35 1.40 1.45 1.50 1.55 1.60 1.65 1.70 1.75 1.80 1.85 1.90 1.95 2.00]
 
   #define CG_RR 255 //[0 4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120 124 128 132 136 140 144 148 152 156 160 164 168 172 176 180 184 188 192 196 200 204 208 212 216 220 224 228 232 236 240 244 248 252 255]
   #define CG_RG 0 //[0 4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120 124 128 132 136 140 144 148 152 156 160 164 168 172 176 180 184 188 192 196 200 204 208 212 216 220 224 228 232 236 240 244 248 252 255]
@@ -446,6 +446,7 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #endif
   
   #ifndef NORMAL_MAPPING
+    #undef GENERATED_NORMALS
     #undef PARALLAX
     #undef SELF_SHADOW
     #undef DIRECTIONAL_LIGHTMAP
@@ -557,8 +558,6 @@ Complementary Shaders by EminGT, based on BSL Shaders by Capt Tatsu
   #endif
   #ifdef HAND_BLOOM_REDUCTION
   #endif
-  #ifdef LIGHTSHAFT_WATER_CAUSTICS
-  #endif
   #ifdef OUTLINE_ON_EVERYTHING
   #endif
   #ifdef FOG2
@@ -617,10 +616,8 @@ float pow2(float number) {
     return number * number;
 }
 
-float sqrt1(float number) { // Faster sqrt() approximation (that isn't accurate at all) for numbers that are between 0 and 1
-    number = 1.0 - number;
-    number *= number;
-    return 1.0 - number;
+float sqrt1(float number) { // Faster sqrt() approximation (that isn't accurate at all) if x is between 0 and 1
+    return number * (2.0 - number); // Thanks to Builderb0y
 }
 float sqrt2(float number) {
     number = 1.0 - number;

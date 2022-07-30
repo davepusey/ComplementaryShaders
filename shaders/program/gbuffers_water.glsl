@@ -16,8 +16,12 @@ varying vec3 viewVector;
 
 varying vec4 color;
 
-#if (defined ADV_MAT && defined NORMAL_MAPPING && !defined COMPBR) || (FANCY_NETHER_PORTAL > 0 && defined COMPBR)
-varying vec4 vTexCoord, vTexCoordAM;
+#if (defined ADV_MAT && defined NORMAL_MAPPING) || (FANCY_NETHER_PORTAL > 0 && defined COMPBR)
+	varying vec4 vTexCoord, vTexCoordAM;
+	
+	#ifdef COMPBR
+		varying vec2 vTexCoordL;
+	#endif
 #endif
 
 //////////Fragment Shader//////////Fragment Shader//////////Fragment Shader//////////
@@ -77,6 +81,10 @@ uniform sampler2D noisetex;
 
 #if MC_VERSION >= 11900
 	uniform float darknessLightFactor;
+#endif
+
+#if defined ADV_MAT && defined GENERATED_NORMALS
+	uniform ivec2 atlasSize;
 #endif
 
 //Optifine Constants//
@@ -243,6 +251,10 @@ float GetWaterOpacity(float alpha, float difT, float fresnel, float lViewPos) {
 	#include "/lib/util/jitter2.glsl"
 #endif
 
+#if defined ADV_MAT && defined GENERATED_NORMALS
+	#include "/lib/surface/autoGenNormals.glsl"
+#endif
+
 //Program//
 void main() {
 	vec4 albedoP = texture2D(texture, texCoord);
@@ -308,25 +320,37 @@ void main() {
 		}
 
 		#ifdef ADV_MAT
-			#if defined NORMAL_MAPPING && !defined COMPBR
+			#ifdef NORMAL_MAPPING
 				if (water < 0.5) {
-					vec2 newCoord = vTexCoord.st * vTexCoordAM.pq + vTexCoordAM.st;
-					normalMap = texture2DGradARB(normals, newCoord, dcdx, dcdy).xyz;
-					normalMap += vec3(0.5, 0.5, 0.0);
-					normalMap = pow(normalMap, vec3(NORMAL_MULTIPLIER));
-					normalMap -= vec3(0.5, 0.5, 0.0);
-					#if RP_SUPPORT == 4
-						normalMap = normalMap * 2.0 - 1.0;
+					#ifdef COMPBR
+						#include "/lib/other/mipLevel.glsl"
+
+						vec4 normalMapV4 = vec4(normalMap, 1.0);
+
+						AutoGenerateNormals(normalMapV4, albedoP.rgb, delta);
+
+						normalMap = normalMapV4.xyz;
+
+						if (normalMap != vec3(0.0, 0.0, 1.0))
 					#else
-						normalMap = normalMap * 2.0 - 1.0;
-						float normalCheck = normalMap.x + normalMap.y;
-						if (normalCheck > -1.999) {
-							if (length(normalMap.xy) > 1.0) normalMap.xy = normalize(normalMap.xy);
-							normalMap.z = sqrt(1.0 - dot(normalMap.xy, normalMap.xy));
-							normalMap = normalize(clamp(normalMap, vec3(-1.0), vec3(1.0)));
-						} else {
-							normalMap = vec3(0.0, 0.0, 1.0);
-						}
+						vec2 newCoord = vTexCoord.st * vTexCoordAM.pq + vTexCoordAM.st;
+						normalMap = texture2DGradARB(normals, newCoord, dcdx, dcdy).xyz;
+						normalMap += vec3(0.5, 0.5, 0.0);
+						normalMap = pow(normalMap, vec3(NORMAL_MULTIPLIER));
+						normalMap -= vec3(0.5, 0.5, 0.0);
+						#if RP_SUPPORT == 4
+							normalMap = normalMap * 2.0 - 1.0;
+						#else
+							normalMap = normalMap * 2.0 - 1.0;
+							float normalCheck = normalMap.x + normalMap.y;
+							if (normalCheck > -1.999) {
+								if (length(normalMap.xy) > 1.0) normalMap.xy = normalize(normalMap.xy);
+								normalMap.z = sqrt(1.0 - dot(normalMap.xy, normalMap.xy));
+								normalMap = normalize(clamp(normalMap, vec3(-1.0), vec3(1.0)));
+							} else {
+								normalMap = vec3(0.0, 0.0, 1.0);
+							}
+						#endif
 					#endif
 
 					if (normalMap.x > -0.999 && normalMap.y > -0.999)
@@ -553,12 +577,17 @@ void main() {
 					#ifdef OVERWORLD
 						float specular = 0.0;
 						if (water > 0.5) {
-							#if WATER_TYPE == 2
-								float smoothnessRTX = albedoP.r * 0.8;
-								smoothnessRTX *= smoothnessRTX;
-								specular = (0.15 + 0.85 * sunVisibility) * GGX(newNormal, nViewPos, lightVec, smoothnessRTX, 0.02, 0.025 * sunVisibility + 0.05);
-								specular *= SUN_MOON_WATER_REF;
-								if (sunVisibility < 0.01) specular *= MOON_WATER_REF;
+							#if WATER_TYPE >= 1
+								float waterSpecMult = SUN_MOON_WATER_REF; 
+								if (sunVisibility < 0.01) waterSpecMult *= MOON_WATER_REF;
+								#if WATER_TYPE == 1
+									float smoothnessRTX = albedoP.r * 0.5;
+									waterSpecMult *= 0.7 - 0.7 * fresnel;
+								#else
+									float smoothnessRTX = albedoP.r * albedoP.r * 0.64;
+								#endif
+								specular = GGX(newNormal, nViewPos, lightVec, smoothnessRTX, 0.02, 0.025 * sunVisibility + 0.05);
+								specular *= waterSpecMult * (0.15 + 0.85 * sunVisibility);
 
 								if (waterBump >= 0.275) specular += stylisedGGX(newNormal, normal, nViewPos, lightVec, 0.0);
 							#else
@@ -632,14 +661,17 @@ void main() {
 				}
 			#endif
 
-			reflection.rgb = max(mix(skyReflection, reflection.rgb, reflection.a), vec3(0.0));
-			
-			albedo.rgb = mix(albedo.rgb, reflection.rgb, fresnel);
-			//if (lightmap.y < 0.998) albedo = vec4(1.0, 0.0, 1.0, 1.0);
+			#if defined REFLECTION || defined WATER_TRANSLUCENT_SKY_REF
+				reflection.rgb = max(mix(skyReflection, reflection.rgb, reflection.a), vec3(0.0));
+				
+				albedo.rgb = mix(albedo.rgb, reflection.rgb, fresnel);
+			#else
+				albedo.rgb *= 1.0 + 2.0 * fresnel;
+			#endif
 		}
 
 		if (tintedGlass > 0.5) {
-			albedo.a = sqrt2(albedo.a);
+			albedo.a = sqrt1(albedo.a);
 		}
 
 		vec3 extra = vec3(0.0);
@@ -752,7 +784,7 @@ void main() {
 								  
 	viewVector = tbnMatrix * (gl_ModelViewMatrix * gl_Vertex).xyz;
 
-	#if (defined ADV_MAT && defined NORMAL_MAPPING && !defined COMPBR) || (FANCY_NETHER_PORTAL > 0 && defined COMPBR)
+	#if (defined ADV_MAT && defined NORMAL_MAPPING) || (FANCY_NETHER_PORTAL > 0 && defined COMPBR)
 		vec2 midCoord = (gl_TextureMatrix[0] *  mc_midTexCoord).st;
 		vec2 texMinMidCoord = texCoord - midCoord;
 
@@ -760,6 +792,10 @@ void main() {
 		vTexCoordAM.st  = min(texCoord, midCoord - texMinMidCoord);
 		
 		vTexCoord.xy    = sign(texMinMidCoord) * 0.5 + 0.5;
+
+		#ifdef COMPBR
+			vTexCoordL  = texMinMidCoord * 2;
+		#endif
 	#endif
     
 	color = gl_Color;

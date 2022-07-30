@@ -11,6 +11,7 @@ varying vec2 texCoord;
 varying vec3 sunVec, upVec;
 
 #ifdef COLORED_LIGHT
+	varying vec3 lightAlbedo;
 	varying	vec3 lightBuffer;
 #endif
 
@@ -67,10 +68,6 @@ uniform sampler2D depthtex0;
 
 #ifdef AURORA
 	uniform float isDry, isRainy, isSnowy;
-#endif
-
-#ifdef COLORED_LIGHT
-	uniform sampler2D colortex8;
 #endif
 
 //Optifine Constants//
@@ -220,10 +217,6 @@ vec3 GetVersatileOutline(vec3 color) {
 void main() {
     vec4 color = texture2D(colortex0, texCoord);
 	float z    = texture2D(depthtex0, texCoord).r;
-
-	#ifdef COLORED_LIGHT
-		vec3 lightAlbedo = texture2DLod(colortex8, texCoord, log2(viewHeight)).rgb;
-	#endif
 
 	float dither = Bayer64(gl_FragCoord.xy);
 	
@@ -593,6 +586,9 @@ void main() {
 uniform mat4 gbufferModelView;
 
 #ifdef COLORED_LIGHT
+	uniform float viewHeight;
+
+	uniform sampler2D colortex8;
 	uniform sampler2D colortex9;
 #endif
 
@@ -623,6 +619,7 @@ void main() {
 	upVec = normalize(gbufferModelView[1].xyz);
 
 	#ifdef COLORED_LIGHT
+		lightAlbedo = texture2DLod(colortex8, texCoord, log2(viewHeight)).rgb;
 		lightBuffer = texture2D(colortex9, texCoord).rgb;
 	#endif
 }

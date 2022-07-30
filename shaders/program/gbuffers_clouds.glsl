@@ -93,11 +93,14 @@ void main(){
 		#endif
 
 		vec3 worldPos = ViewToWorld(viewPos);
-		float lWorldPos = length(worldPos.xz);
-		float cloudDistance = 290.0;
-		cloudDistance = clamp((cloudDistance - lWorldPos) / cloudDistance, 0.0, 1.0);
-		if (cloudDistance < 0.00001) discard;
-		albedo.a *= min(cloudDistance * 3.0, 1.0);
+
+		#ifdef FOG1
+			float lWorldPos = length(worldPos.xz);
+			float cloudDistance = 290.0;
+			cloudDistance = clamp((cloudDistance - lWorldPos) / cloudDistance, 0.0, 1.0);
+			if (cloudDistance < 0.00001) discard;
+			albedo.a *= min(cloudDistance * 3.0, 1.0);
+		#endif
 
 		vec3 nViewPos = normalize(viewPos.xyz);
 		float NdotU = dot(nViewPos, upVec);

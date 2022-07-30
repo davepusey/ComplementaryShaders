@@ -395,6 +395,8 @@ void main() {
 				#ifdef GENERATED_NORMALS
 					if (cauldron < 0.5)
 					AutoGenerateNormals(normalMap, albedoP, delta);
+
+	
 					if (normalMap != vec4(0.0, 0.0, 1.0, 1.0))
 				#endif
 				{
@@ -615,7 +617,7 @@ void main() {
 			#elif SHOW_LIGHT_LEVELS == 3
 				if (heldBlockLightValue > 7.4 || heldBlockLightValue2 > 7.4)
 			#endif
-			if (dot(normal, upVec) > 0.99 && foliage + leaves < 0.1) {
+			if (dot(normal, upVec) > 0.99 && foliage + leaves < 0.1 && material != 162.0) {
 				#include "/lib/other/indicateLightLevels.glsl"
 			}
 		#endif

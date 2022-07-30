@@ -1,18 +1,15 @@
 #if defined MOON_PHASE_LIGHTING && !defined UNIFORM_moonPhase
-#define UNIFORM_moonPhase
-uniform int moonPhase;
+	#define UNIFORM_moonPhase
+	uniform int moonPhase;
 #endif
 
-float CalcNightBrightness() {
-	float nightBright = NIGHT_BRIGHTNESS;
-	#ifdef MOON_PHASE_LIGHTING
-		if (moonPhase == 0) nightBright *= NIGHT_LIGHTING_FULL_MOON;
-		else if (!(moonPhase == 4)) nightBright *= NIGHT_LIGHTING_PARTIAL_MOON;
-		else nightBright *= NIGHT_LIGHTING_NEW_MOON;
-	#endif
-	return nightBright;
-}
-float nightBrightness = CalcNightBrightness();
+#ifndef MOON_PHASE_LIGHTING
+	float nightBrightness = NIGHT_BRIGHTNESS;
+#else
+	float nightBrightness = moonPhase == 0 ? NIGHT_BRIGHTNESS * NIGHT_LIGHTING_FULL_MOON :
+							moonPhase != 4 ? NIGHT_BRIGHTNESS * NIGHT_LIGHTING_PARTIAL_MOON :
+											 NIGHT_BRIGHTNESS * NIGHT_LIGHTING_NEW_MOON;
+#endif
 
 vec3 lightMorning    = vec3(LIGHT_MR, LIGHT_MG, LIGHT_MB) * LIGHT_MI / 255.0;
 vec3 lightDay        = vec3(LIGHT_DR, LIGHT_DG, LIGHT_DB) * LIGHT_DI / 255.0;
@@ -33,17 +30,17 @@ vec3 weatherIntensity = vec3(WEATHER_RI);
 
 float mefade = 1.0 - clamp(abs(timeAngle - 0.5) * 8.0 - 1.5, 0.0, 1.0);
 float dfade = 1.0 - timeBrightness;
+float dfadeM = dfade * dfade;
+float dfadeM2 = 1.0 - dfade * dfade;
 
-vec3 CalcLightColor(vec3 morning, vec3 day, vec3 afternoon, vec3 night, vec3 weatherCol) {
-	vec3 me = mix(morning, afternoon, mefade);
-	float dfadeModified = dfade * dfade;
-	vec3 dayAll = mix(me, day, 1.0 - dfadeModified * dfadeModified);
-	vec3 c = mix(night, dayAll, sunVisibility);
-	c = mix(c, dot(c, vec3(0.299, 0.587, 0.114)) * weatherCol, rainStrengthS*0.6);
-	return c * c;
-}
+vec3 meL = mix(lightMorning, lightEvening, mefade);
+vec3 dayAllL = mix(meL, lightDay, dfadeM2);
+vec3 cL = mix(lightNight, dayAllL, sunVisibility);
+vec3 cL2 = mix(cL, dot(cL, vec3(0.299, 0.587, 0.114)) * weatherCol * (vsBrightness*0.1 + 0.9), rainStrengthS*0.6);
+vec3 lightCol = cL2 * cL2;
 
-vec3 lightCol   = CalcLightColor(lightMorning,   lightDay,   lightEvening,   lightNight,
-								 weatherCol * (vsBrightness*0.1 + 0.9));
-vec3 ambientCol = CalcLightColor(ambientMorning, ambientDay, ambientEvening, ambientNight,
-								 weatherCol * (vsBrightness*0.1 + 0.9));
+vec3 meA = mix(ambientMorning, ambientEvening, mefade);
+vec3 dayAllA = mix(meA, ambientDay, dfadeM2);
+vec3 cA = mix(ambientNight, dayAllA, sunVisibility);
+vec3 cA2 = mix(cA, dot(cA, vec3(0.299, 0.587, 0.114)) * weatherCol * (vsBrightness*0.1 + 0.9), rainStrengthS*0.6);
+vec3 ambientCol = cA2 * cA2;

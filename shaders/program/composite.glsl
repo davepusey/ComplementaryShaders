@@ -200,11 +200,11 @@ void main() {
 				refractScale *= REFRACT_STRENGTH / distScale0;
 			#else
 				#if NETHER_REFRACT == 1
-					refractScale *= 4.0;
+					refractScale *= 2.0;
 				#elif NETHER_REFRACT == 2
-					refractScale *= 8.0;
+					refractScale *= 4.0;
 				#else
-					refractScale *= 16.0;
+					refractScale *= 8.0;
 				#endif
 				refractScale *= clamp(pow2(length(viewPos)) * 0.0001, 0.0, 0.1); //9452873723569
 			#endif

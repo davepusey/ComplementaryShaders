@@ -330,7 +330,7 @@ void main() {
 		#ifdef COMPBR
 			if (blockEntityId == 10364) { // Enchanting Table Book
 				float ETBEF = albedo.r + albedo.g - albedo.b * 4.0;
-				if (ETBEF > 0.7) { 
+				if (ETBEF > 0.75) { 
 					emissive = 0.25;
 				}
 			}

@@ -1,6 +1,4 @@
-#version 120 
-
-#extension GL_ARB_shader_texture_lod : enable
+#version 130 
 
 #define GBUFFERS_ENTITIES
 #define GBUFFERS_ENTITIES_GLOWING
