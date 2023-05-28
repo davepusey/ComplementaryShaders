@@ -205,7 +205,7 @@ vec2 GetLightPos() {
 //Program//
 void main() {
     vec2 newTexCoord = texCoord;
-	if (isEyeInWater == 1.0) UnderwaterDistort(newTexCoord);
+	if (isEyeInWater == 1) UnderwaterDistort(newTexCoord);
 
 	vec2 filmGrainCoord = texCoord * vec2(viewWidth, viewHeight) / 512.0;
 	vec3 filmGrain = texture2D(noisetex, filmGrainCoord).rgb;
@@ -245,7 +245,7 @@ void main() {
 		float truePos = sign(sunVec.z);
 			
 		float visibleSun = float(texture2D(depthtex1, lightPos + 0.5).r >= 1.0);
-		visibleSun *= max(1.0 - isEyeInWater, eBS) * (1.0 - blindFactor) * (1.0 - rainStrengthS);
+		visibleSun *= max(1.0 - isEyeInWater, 0.0) * (1.0 - blindFactor) * (1.0 - rainStrengthS);
 		
 		float multiplier = tempVisibleSun * LENS_FLARE_STRENGTH * 0.5 * float(!(moonPhase == 4 && sunVisibility < 0.5));
 

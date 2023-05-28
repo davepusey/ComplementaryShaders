@@ -37,7 +37,8 @@ vec3 GetVolumetricRays(float depth0, float depth1, vec3 vlAlbedo, float dither, 
 	vec3 vl = vec3(0.0);
 
 	#if AA > 1
-		dither = fract(dither + frameTimeCounter * 16.0);
+		float ditherAnimate = 1.61803398875 * mod(float(frameCounter), 3600.0);
+		dither = fract(dither + ditherAnimate);
 	#endif
 	
 	#ifdef OVERWORLD
@@ -203,7 +204,8 @@ vec3 GetVolumetricRays(float depth0, float depth1, vec3 vlAlbedo, float dither, 
 		#else
 			#if LIGHT_SHAFT_MODE == 2
 				if (isEyeInWater == 0) {
-					float vlPower = max(1.75 - rainStrengthS + sunVisibility*0.25, 1.0);
+					float vlPower = 1.75 - rainStrengthS + sunVisibility*0.25;
+					if (vlPower < 1.0) vlPower = 1.0;
 					vl = pow(vl, vec3(vlPower));
 				}
 			#else

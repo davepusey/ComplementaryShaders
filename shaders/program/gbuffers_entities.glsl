@@ -157,14 +157,17 @@ void main() {
 		
 		#if defined PARALLAX || defined SELF_SHADOW
 			float parallaxFade = clamp((dist - PARALLAX_DISTANCE) / 32.0, 0.0, 1.0);
-			float skipParallax = itemFrameOrPainting;
-			float parallaxDepth = 1.0;
+			vec2 coordDif = abs(newCoord - texCoord);
+			float skipParallax = itemFrameOrPainting + 100000.0 * (coordDif.x + coordDif.y);
+			vec3 parallaxTraceCoordDepth = vec3(newCoord, 1.0);
+			vec2 parallaxLocalCoord = vTexCoord.st;
+			float parallaxTexDepth = 1.0;
 		#endif
 		
 		#ifdef PARALLAX
 			if (skipParallax < 0.5) {
-				GetParallaxCoord(parallaxFade, newCoord, parallaxDepth);
-				albedo = texture2DGradARB(texture, newCoord, dcdx, dcdy) * color;
+				parallaxLocalCoord = GetParallaxCoord(parallaxFade, newCoord, parallaxTexDepth, parallaxTraceCoordDepth);
+				albedo = textureGrad(texture, newCoord, dcdx, dcdy) * color;
 			}
 		#endif
 	#endif
@@ -290,6 +293,10 @@ void main() {
 				}
 			}
 			}
+
+			if (entityId == 11002) { // Tomato Guy
+				emissive = float(albedo.r > 0.9 && albedo.g < 0.1 && albedo.b < 0.1);
+			}
 			#endif
 
 			#ifndef COMPATIBILITY_MODE
@@ -303,8 +310,16 @@ void main() {
 									  tangent.y, binormal.y, normal.y,
 									  tangent.z, binormal.z, normal.z);
 
-				if (normalMap.x > -0.999 && normalMap.y > -0.999)
+				if (normalMap.x > -0.999 && normalMap.y > -0.999) {
+					#ifdef PARALLAX_SLOPE_NORMALS
+						float slopeThreshold = max(1.0 / PARALLAX_QUALITY, 1.0/255.0);
+						if (parallaxTexDepth - parallaxTraceCoordDepth.z > slopeThreshold) {
+							normalMap.xyz = GetParallaxSlopeNormal(parallaxLocalCoord, parallaxTraceCoordDepth.z, viewVector);
+						}
+					#endif
+
 					newNormal = clamp(normalize(normalMap.xyz * tbnMatrix), vec3(-1.0), vec3(1.0));
+				}
 			#endif
 		#endif
 
@@ -362,7 +377,7 @@ void main() {
 				#endif
 				
 				if (doParallax > 0.5) {
-					parallaxShadow = GetParallaxShadow(parallaxFade, newCoord, lightVec, tbnMatrix, parallaxDepth, normalMap.a);
+					parallaxShadow = GetParallaxShadow(parallaxFade, parallaxLocalCoord, lightVec, tbnMatrix, parallaxTraceCoordDepth.z, normalMap.a);
 					NdotL *= parallaxShadow;
 				}
 			#endif
